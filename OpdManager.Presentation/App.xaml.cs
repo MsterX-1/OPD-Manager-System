@@ -4,7 +4,11 @@ using System.Windows;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OpdManager.Application.Interfaces;
+using OpdManager.Application.Interfaces.Repositories;
+using OpdManager.Application.Services.Implementations;
+using OpdManager.Application.Services.Interfaces;
 using OpdManager.Infrastructure.Data;
+using OpdManager.Infrastructure.Repositories;
 using OpdManager.Infrastructure.UnitOfWork;
 using OpdManager.Presentation.ViewModels;
 
@@ -40,8 +44,22 @@ public partial class App : System.Windows.Application
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite("Data Source=opd.db"));
 
-        // Unit of Work
+        // Repositories — scoped so they share the same DbContext per scope
+        services.AddScoped<IDoctorRepository, DoctorRepository>();
+        services.AddScoped<IPatientRepository, PatientRepository>();
+        services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+        services.AddScoped<IIssueRepository, IssueRepository>();
+        services.AddScoped<IQueueRepository, QueueRepository>();
+
+        // Unit of Work — gets repositories injected automatically
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Services
+        services.AddScoped<IDoctorService, DoctorService>();
+        services.AddScoped<IPatientService, PatientService>();
+        services.AddScoped<IAppointmentService, AppointmentService>();
+        services.AddScoped<IQueueService, QueueService>();
+        services.AddScoped<IIssueService, IssueService>();
 
         // ViewModels
         services.AddScoped<DashboardViewModel>();

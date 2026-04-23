@@ -6,13 +6,8 @@ using OpdManager.Domain.Enums;
 
 namespace OpdManager.Application.Interfaces.Repositories
 {
-    public interface IIssueRepository
+    public interface IIssueRepository : IBaseRepository<Issue>
     {
-        Task<IEnumerable<Issue>> GetAllAsync();
         Task<IEnumerable<Issue>> GetByStatusAsync(IssueStatus status);
-        Task<Issue?> GetByIdAsync(int id);
-        Task AddAsync(Issue issue);
-        void Update(Issue issue);
-        void Delete(Issue issue);
     }
 }

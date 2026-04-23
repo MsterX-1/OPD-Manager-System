@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using OpdManager.Application.Interfaces.Repositories;
@@ -8,13 +9,12 @@ using OpdManager.Infrastructure.Data;
 
 namespace OpdManager.Infrastructure.Repositories
 {
-    public class QueueRepository : IQueueRepository
+    public class QueueRepository : BaseRepository<QueueEntry>, IQueueRepository
     {
-        private readonly AppDbContext _context;
-        public QueueRepository(AppDbContext context) => _context = context;
+        public QueueRepository(AppDbContext context) : base(context) { }
 
         public async Task<IEnumerable<QueueEntry>> GetTodayQueueAsync() =>
-            await _context.QueueEntries
+            await DbSet
                 .Include(q => q.Appointment)
                     .ThenInclude(a => a.Patient)
                 .Include(q => q.Appointment)
@@ -23,21 +23,14 @@ namespace OpdManager.Infrastructure.Repositories
                 .OrderBy(q => q.QueueNumber)
                 .ToListAsync();
 
-        public async Task<QueueEntry?> GetByIdAsync(int id) =>
-            await _context.QueueEntries.FindAsync(id);
-
         public async Task<int> GetNextQueueNumberAsync()
         {
-            var todayEntries = await _context.QueueEntries
+            var todayEntries = await DbSet
                 .Where(q => q.CheckInTime.Date == DateTime.Today)
                 .ToListAsync();
             return todayEntries.Any() ? todayEntries.Max(q => q.QueueNumber) + 1 : 1;
         }
 
-        public async Task AddAsync(QueueEntry entry) =>
-            await _context.QueueEntries.AddAsync(entry);
-
-        public void Update(QueueEntry entry) =>
-            _context.QueueEntries.Update(entry);
+        public void Delete(QueueEntry entry) => DbSet.Remove(entry); //override Delete to remove the entry from the DbSet
     }
 }

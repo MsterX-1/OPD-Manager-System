@@ -10,7 +10,7 @@ namespace OpdManager.Infrastructure.UnitOfWork
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private readonly AppDbContext _context;
+        private readonly Data.AppDbContext _context;
 
         public IDoctorRepository Doctors { get; }
         public IPatientRepository Patients { get; }
@@ -18,14 +18,20 @@ namespace OpdManager.Infrastructure.UnitOfWork
         public IIssueRepository Issues { get; }
         public IQueueRepository Queue { get; }
 
-        public UnitOfWork(AppDbContext context)
+        public UnitOfWork(
+            AppDbContext context,
+            IDoctorRepository doctors,
+            IPatientRepository patients,
+            IAppointmentRepository appointments,
+            IIssueRepository issues,
+            IQueueRepository queue)
         {
             _context = context;
-            Doctors = new DoctorRepository(context);
-            Patients = new PatientRepository(context);
-            Appointments = new AppointmentRepository(context);
-            Issues = new IssueRepository(context);
-            Queue = new QueueRepository(context);
+            Doctors = doctors;
+            Patients = patients;
+            Appointments = appointments;
+            Issues = issues;
+            Queue = queue;
         }
 
         public async Task<int> SaveChangesAsync() =>

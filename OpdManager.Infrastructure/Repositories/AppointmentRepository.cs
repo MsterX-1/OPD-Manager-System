@@ -1,68 +1,80 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using OpdManager.Application.DTOs;
 using OpdManager.Application.Interfaces.Repositories;
 using OpdManager.Domain.Entities;
 using OpdManager.Infrastructure.Data;
 
 namespace OpdManager.Infrastructure.Repositories
 {
-    public class AppointmentRepository : IAppointmentRepository
+    public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRepository
     {
-        private readonly AppDbContext _context;
-        public AppointmentRepository(AppDbContext context) => _context = context;
+        public AppointmentRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<Appointment>> GetAllAsync() =>
-            await _context.Appointments
-                .Include(a => a.Doctor)
-                .Include(a => a.Patient)
-                .Include(a => a.QueueEntry)
-                .ToListAsync();
-
-        public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date)
-        {
-            var appointments = await _context.Appointments
-                .Include(a => a.Doctor)
-                .Include(a => a.Patient)
-                .Include(a => a.QueueEntry)
-                .Where(a => a.AppointmentDate.Date == date.Date)
-                .ToListAsync(); // fetch first, then order in memory
-
-            return appointments.OrderBy(a => a.TimeSlot);
-        }
-
-        public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date)
-        {
-            var appointments = await _context.Appointments
-                .Include(a => a.Patient)
-                .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == date.Date)
-                .ToListAsync(); // fetch first, then order in memory
-
-            return appointments.OrderBy(a => a.TimeSlot);
-        }
-
-        public async Task<Appointment?> GetByIdAsync(int id) =>
-            await _context.Appointments
+        // Override base — appointments always need includes
+        public override async Task<Appointment?> GetByIdAsync(int id) =>
+            await DbSet
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
                 .Include(a => a.QueueEntry)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-        public async Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot) =>
-            !await _context.Appointments.AnyAsync(a =>
+        public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date)
+        {
+            var list = await DbSet
+                .Include(a => a.Doctor)
+                .Include(a => a.Patient)
+                .Include(a => a.QueueEntry)
+                .Where(a => a.AppointmentDate.Date == date.Date)
+                .ToListAsync();
+
+            return list.OrderBy(a => a.TimeSlot); // in-memory — TimeSpan SQLite fix
+        }
+
+        public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date)
+        {
+            var list = await DbSet
+                .Include(a => a.Patient)
+                .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == date.Date)
+                .ToListAsync();
+
+            return list.OrderBy(a => a.TimeSlot);
+        }
+
+        public async Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot)
+        {
+            var ticks = timeSlot.Ticks;
+            return !await DbSet.AnyAsync(a =>
                 a.DoctorId == doctorId &&
                 a.AppointmentDate.Date == date.Date &&
-                a.TimeSlot == timeSlot &&
+                a.TimeSlotTicks == ticks &&
                 a.Status != Domain.Enums.AppointmentStatus.Cancelled);
+        }
 
-        public async Task AddAsync(Appointment appointment) =>
-            await _context.Appointments.AddAsync(appointment);
+        public async Task<PagedResult<Appointment>> GetByDatePagedAsync(
+            DateTime date, int page, int pageSize)
+        {
+            var query = DbSet
+                .Include(a => a.Doctor)
+                .Include(a => a.Patient)
+                .Include(a => a.QueueEntry)
+                .Where(a => a.AppointmentDate.Date == date.Date);
 
-        public void Update(Appointment appointment) =>
-            _context.Appointments.Update(appointment);
+            var totalCount = await query.CountAsync();
 
-        public void Delete(Appointment appointment) =>
-            _context.Appointments.Remove(appointment);
+            var items = await query
+                .OrderBy(a => a.TimeSlotTicks)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Appointment>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
     }
 }

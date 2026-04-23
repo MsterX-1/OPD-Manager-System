@@ -41,8 +41,8 @@ namespace OpdManager.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
 
-                    b.Property<TimeSpan>("TimeSlot")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("TimeSlotTicks")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
