@@ -1,0 +1,175 @@
+<UserControl x:Class="OpdManager.Presentation.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <!-- Stat Card Style -->
+        <Style x:Key="StatCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2"
+                                      Opacity="0.08" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatNumber" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="36"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,8,0,4"/>
+        </Style>
+
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#78909C"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+
+            <!-- Header -->
+            <DockPanel Margin="0,0,0,24">
+                <StackPanel DockPanel.Dock="Left">
+                    <TextBlock Text="Dashboard"
+                               FontSize="24" FontWeight="Bold"
+                               Foreground="#1C2833"/>
+                    <TextBlock Text="{Binding LastUpdated}"
+                               FontSize="12" Foreground="#90A4AE"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="⟳  Refresh"
+                        Command="{Binding RefreshCommand}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Padding="16,8"
+                        Background="#1C2833"
+                        Foreground="White"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="8"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </DockPanel>
+
+            <!-- Loading indicator -->
+            <TextBlock Text="Loading..." Visibility="{Binding IsLoading,
+                       Converter={StaticResource BoolToVisibility}}"
+                       FontSize="14" Foreground="#90A4AE"
+                       Margin="0,0,0,12"/>
+
+            <!-- Stat Cards Row 1 -->
+            <UniformGrid Columns="4" Margin="0,0,0,16">
+
+                <!-- Total Today -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="🧑‍⚕️" FontSize="22"/>
+                        <TextBlock Text="{Binding TotalPatientsToday}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#1565C0"/>
+                        <TextBlock Text="Total Patients Today"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Waiting -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="⏳" FontSize="22"/>
+                        <TextBlock Text="{Binding WaitingPatients}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#E65100"/>
+                        <TextBlock Text="Waiting"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- In Progress -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="🔄" FontSize="22"/>
+                        <TextBlock Text="{Binding InProgressPatients}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#2E7D32"/>
+                        <TextBlock Text="In Progress"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Completed -->
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel>
+                        <TextBlock Text="✅" FontSize="22"/>
+                        <TextBlock Text="{Binding CompletedPatients}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#558B2F"/>
+                        <TextBlock Text="Completed"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Stat Cards Row 2 -->
+            <UniformGrid Columns="3" Margin="0,0,0,24">
+
+                <!-- Avg Wait -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="⏱️" FontSize="22"/>
+                        <TextBlock Text="{Binding AverageWaitingMinutes, StringFormat='{}{0:F0} min'}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#6A1B9A"/>
+                        <TextBlock Text="Avg Waiting Time"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Active Doctors -->
+                <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                    <StackPanel>
+                        <TextBlock Text="👨‍⚕️" FontSize="22"/>
+                        <TextBlock Text="{Binding ActiveDoctors}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#00838F"/>
+                        <TextBlock Text="Active Doctors"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Open Issues -->
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel>
+                        <TextBlock Text="⚠️" FontSize="22"/>
+                        <TextBlock Text="{Binding OpenIssues}"
+                                   Style="{StaticResource StatNumber}"
+                                   Foreground="#C62828"/>
+                        <TextBlock Text="Open Issues"
+                                   Style="{StaticResource StatLabel}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
