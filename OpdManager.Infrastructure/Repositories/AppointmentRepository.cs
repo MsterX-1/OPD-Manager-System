@@ -20,21 +20,27 @@ namespace OpdManager.Infrastructure.Repositories
                 .Include(a => a.QueueEntry)
                 .ToListAsync();
 
-        public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date) =>
-            await _context.Appointments
+        public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date)
+        {
+            var appointments = await _context.Appointments
                 .Include(a => a.Doctor)
                 .Include(a => a.Patient)
                 .Include(a => a.QueueEntry)
                 .Where(a => a.AppointmentDate.Date == date.Date)
-                .OrderBy(a => a.TimeSlot)
-                .ToListAsync();
+                .ToListAsync(); // fetch first, then order in memory
 
-        public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date) =>
-            await _context.Appointments
+            return appointments.OrderBy(a => a.TimeSlot);
+        }
+
+        public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date)
+        {
+            var appointments = await _context.Appointments
                 .Include(a => a.Patient)
                 .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == date.Date)
-                .OrderBy(a => a.TimeSlot)
-                .ToListAsync();
+                .ToListAsync(); // fetch first, then order in memory
+
+            return appointments.OrderBy(a => a.TimeSlot);
+        }
 
         public async Task<Appointment?> GetByIdAsync(int id) =>
             await _context.Appointments
