@@ -34,8 +34,18 @@ namespace OpdManager.Application.Services.Implementations
         {
             var doctor = await _uow.Doctors.GetByIdAsync(id);
             if (doctor is null) return;
+
+            var appointments = await _uow.Appointments
+                .GetWhereAsync(a => a.DoctorId == id);
+
+            if (appointments.Any())
+                throw new InvalidOperationException(
+                    $"Cannot delete Dr. {doctor.Name} — they have {appointments.Count()} appointment(s) on record.\n" +
+                    $"Please delete their appointments first.");
+
             _uow.Doctors.Delete(doctor);
             await _uow.SaveChangesAsync();
         }
+
     }
 }

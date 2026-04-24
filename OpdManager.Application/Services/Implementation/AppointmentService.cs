@@ -38,15 +38,33 @@ namespace OpdManager.Application.Services.Implementations
 
         public async Task<(bool Success, string Error)> BookAsync(Appointment appointment)
         {
-            var available = await _uow.Appointments.IsSlotAvailableAsync(
-                appointment.DoctorId,
-                appointment.AppointmentDate,
-                appointment.TimeSlot);
+            if (appointment.Id == 0) // Add new
+            {
+                var available = await _uow.Appointments.IsSlotAvailableAsync(
+                    appointment.DoctorId,
+                    appointment.AppointmentDate,
+                    appointment.TimeSlot);
 
-            if (!available)
-                return (false, "This time slot is already booked for the selected doctor.");
+                if (!available)
+                    return (false, "This time slot is already booked for the selected doctor.");
 
-            await _uow.Appointments.AddAsync(appointment);
+                await _uow.Appointments.AddAsync(appointment);
+            }
+            else // Edit existing — fetch tracked instance, update it
+            {
+                var existing = await _uow.Appointments.GetByIdAsync(appointment.Id);
+                if (existing is null)
+                    return (false, "Appointment not found.");
+
+                existing.DoctorId = appointment.DoctorId;
+                existing.PatientId = appointment.PatientId;
+                existing.AppointmentDate = appointment.AppointmentDate;
+                existing.TimeSlot = appointment.TimeSlot;
+                existing.Notes = appointment.Notes;
+
+                _uow.Appointments.Update(existing);
+            }
+
             await _uow.SaveChangesAsync();
             return (true, string.Empty);
         }
@@ -82,7 +100,15 @@ namespace OpdManager.Application.Services.Implementations
             TimeSlot = a.TimeSlot,
             Status = a.Status,
             QueueNumber = a.QueueEntry?.QueueNumber,
-            WaitingMinutes = a.QueueEntry?.WaitingMinutes
+            WaitingMinutes = a.QueueEntry?.WaitingMinutes,
+            Notes = a.Notes
         };
+        public async Task DeleteAsync(int id)
+        {
+            var appointment = await _uow.Appointments.GetByIdAsync(id);
+            if (appointment is null) return;
+            _uow.Appointments.Delete(appointment);
+            await _uow.SaveChangesAsync();
+        }
     }
 }

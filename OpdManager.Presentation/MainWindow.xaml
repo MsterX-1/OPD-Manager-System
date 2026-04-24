@@ -95,10 +95,20 @@
                         </Button.Style>
                     </Button>
 
-                    <!-- Future phases — no commands yet -->
                     <Button Content="📅  Appointments"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="0,4,0,0"/>
+                            Command="{Binding NavAppointmentsCommand}"
+                            Margin="0,4,0,0">  
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveNav}" Value="Appointments">
+                                        <Setter Property="Background" Value="#263238"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Content="🔢  Queue Monitor"
                             Style="{StaticResource NavButtonStyle}"
                             Margin="0,4,0,0"/>
@@ -122,6 +132,9 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vm:DoctorViewModel}">
                         <views:DoctorsView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:AppointmentViewModel}">
+                        <views:AppointmentsView/>
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>

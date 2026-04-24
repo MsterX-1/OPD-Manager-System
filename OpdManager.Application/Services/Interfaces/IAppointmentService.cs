@@ -15,5 +15,6 @@ namespace OpdManager.Application.Services.Interfaces
         Task<(bool Success, string Error)> BookAsync(Appointment appointment);
         Task<bool> CancelAsync(int id);
         Task UpdateStatusAsync(int id, AppointmentStatus status);
+        Task DeleteAsync(int id);
     }
 }

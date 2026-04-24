@@ -1,0 +1,232 @@
+<UserControl x:Class="OpdManager.Presentation.Views.AppointmentsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:OpdManager.Presentation.Converters"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <converters:TimeSpanTo12HourConverter x:Key="TimeSpanTo12HourConverter"/>
+        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
+        <converters:StatusToTextConverter x:Key="StatusToTextConverter"/>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="Appointments"
+                           FontSize="24" FontWeight="Bold" Foreground="#1C2833"/>
+                <TextBlock Text="Manage daily appointments and queue check-ins"
+                           FontSize="12" Foreground="#90A4AE" Margin="0,4,0,0"/>
+            </StackPanel>
+            <Button DockPanel.Dock="Right"
+                    Content="＋  New Appointment"
+                    Command="{Binding AddCommand}"
+                    Background="#1C2833" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- Filters bar -->
+        <Grid Grid.Row="1" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Date picker -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8"
+                    BorderBrush="#E0E0E0" BorderThickness="1"
+                    Padding="12,6" Margin="0,0,8,0">
+                <DatePicker SelectedDate="{Binding SelectedDate}"
+                            BorderThickness="0" Background="Transparent"
+                            FontSize="13"/>
+            </Border>
+
+            <!-- Today button -->
+            <Button Grid.Column="1"
+                    Content="Today"
+                    Command="{Binding TodayCommand}"
+                    Background="#E3F2FD" Foreground="#1565C0"
+                    Style="{StaticResource ActionButton}"
+                    Margin="0,0,8,0"/>
+
+            <!-- Doctor filter -->
+			<Border Grid.Column="2" Background="White" CornerRadius="8"
+					BorderBrush="#E0E0E0" BorderThickness="1"
+					Padding="8,4" Margin="0,0,8,0" MinWidth="160">
+				<ComboBox ItemsSource="{Binding Doctors}"
+						  SelectedItem="{Binding FilterDoctor}"
+						  BorderThickness="0" Background="Transparent"
+						  FontSize="13">
+					<ComboBox.ItemTemplate>
+						<DataTemplate>
+							<TextBlock>
+								<TextBlock.Style>
+									<Style TargetType="TextBlock">
+										<Setter Property="Text" Value="{Binding Name}"/>
+										<Style.Triggers>
+											<DataTrigger Binding="{Binding}" Value="{x:Null}">
+												<Setter Property="Text" Value="All Doctors"/>
+											</DataTrigger>
+										</Style.Triggers>
+									</Style>
+								</TextBlock.Style>
+							</TextBlock>
+						</DataTemplate>
+					</ComboBox.ItemTemplate>
+				</ComboBox>
+			</Border>
+
+            <!-- Action buttons -->
+            <Button Grid.Column="4"
+                    Content="✏️  Edit"
+                    Command="{Binding EditCommand}"
+                    Background="#1565C0" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    Margin="0,0,8,0"/>
+
+            <Button Grid.Column="5"
+                    Content="✅  Check In"
+                    Command="{Binding CheckInCommand}"
+                    Background="#2E7D32" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    Margin="0,0,8,0"/>
+
+            <Button Grid.Column="6"
+                Content="❌  Cancel Appt"
+                Command="{Binding CancelCommand}"
+                Background="#E65100" Foreground="White"
+                Style="{StaticResource ActionButton}"
+                Margin="0,0,8,0"/>
+
+            <Button Grid.Column="7"
+                Content="🗑  Delete"
+                Command="{Binding DeleteCommand}"
+                Background="#C62828" Foreground="White"
+                Style="{StaticResource ActionButton}"/>
+        </Grid>
+
+        <!-- DataGrid -->
+        <Border Grid.Row="2" Background="White" CornerRadius="12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="2"
+                                  Opacity="0.08" Color="#000000"/>
+            </Border.Effect>
+            <DataGrid ItemsSource="{Binding Appointments}"
+                      SelectedItem="{Binding SelectedAppointment}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#F5F5F5"
+                      BorderThickness="0"
+                      RowHeight="48" FontSize="13"
+                      Background="White" RowBackground="White"
+                      AlternatingRowBackground="#FAFAFA"
+                      SelectionMode="Single"
+                      CanUserResizeRows="False"
+                      ColumnHeaderHeight="44">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="#78909C"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="BorderBrush" Value="#F0F0F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="Foreground" Value="#1C2833"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Queue #"
+                                        Binding="{Binding QueueNumber}"
+                                        Width="80"/>
+                    <DataGridTextColumn Header="Time"
+                                        Binding="{Binding TimeSlot,
+                                                  Converter={StaticResource TimeSpanTo12HourConverter}}"
+                                        Width="100"/>
+                    <DataGridTextColumn Header="Patient"
+                                        Binding="{Binding PatientName}"
+                                        Width="*"/>
+                    <DataGridTextColumn Header="Doctor"
+                                        Binding="{Binding DoctorName}"
+                                        Width="*"/>
+                    <DataGridTextColumn Header="Specialty"
+                                        Binding="{Binding DoctorSpecialty}"
+                                        Width="120"/>
+                    <DataGridTextColumn Header="Wait (min)"
+                                        Binding="{Binding WaitingMinutes}"
+                                        Width="90"/>
+                    <!-- Status badge -->
+                    <DataGridTemplateColumn Header="Status" Width="130">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="12" Padding="10,4"
+                                        HorizontalAlignment="Left" Margin="16,0"
+                                        Background="{Binding Status,
+                                                     Converter={StaticResource StatusToColorConverter}}">
+                                    <TextBlock
+                                        Text="{Binding Status,
+                                               Converter={StaticResource StatusToTextConverter}}"
+                                        FontSize="12" FontWeight="Medium"
+                                        Foreground="White"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

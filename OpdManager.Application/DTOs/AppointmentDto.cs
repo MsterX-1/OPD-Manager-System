@@ -16,5 +16,6 @@ namespace OpdManager.Application.DTOs
         public AppointmentStatus Status { get; set; }
         public int? QueueNumber { get; set; }
         public int? WaitingMinutes { get; set; }
+        public string? Notes { get; set; }
     }
 }

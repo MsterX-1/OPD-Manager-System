@@ -108,8 +108,17 @@ namespace OpdManager.Presentation.ViewModels
 
             if (result != MessageBoxResult.Yes) return;
 
-            await _doctorService.DeleteAsync(SelectedDoctor.Id);
-            await LoadAsync();
+            try
+            {
+                await _doctorService.DeleteAsync(SelectedDoctor.Id);
+                await LoadAsync();
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Show friendly message instead of crashing
+                MessageBox.Show(ex.Message, "Cannot Delete Doctor",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private async Task ToggleActiveAsync()

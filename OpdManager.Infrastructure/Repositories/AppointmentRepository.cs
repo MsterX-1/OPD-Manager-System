@@ -76,5 +76,12 @@ namespace OpdManager.Infrastructure.Repositories
                 PageSize = pageSize
             };
         }
+        public async Task<IEnumerable<Appointment>> GetAllByDoctorAsync(int doctorId)
+        {
+            var list = await DbSet
+                .Where(a => a.DoctorId == doctorId)
+                .ToListAsync();
+            return list;
+        }
     }
 }
