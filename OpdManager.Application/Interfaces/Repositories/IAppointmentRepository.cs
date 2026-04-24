@@ -11,7 +11,7 @@ namespace OpdManager.Application.Interfaces.Repositories
         Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date);
         Task<PagedResult<Appointment>> GetByDatePagedAsync(DateTime date, int page, int pageSize);
         Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date);
-        Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot);
+        Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot, int excludeAppointmentId = 0);
         Task<IEnumerable<Appointment>> GetAllByDoctorAsync(int doctorId);
     }
 }

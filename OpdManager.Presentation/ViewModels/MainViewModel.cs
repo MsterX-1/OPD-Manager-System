@@ -41,26 +41,44 @@ namespace OpdManager.Presentation.ViewModels
             AppointmentViewModel appointmentViewModel,
             IServiceProvider serviceProvider)
         {
-            _dashboardViewModel   = dashboardViewModel;
-            _doctorViewModel      = doctorViewModel;
+            _dashboardViewModel = dashboardViewModel;
+            _doctorViewModel = doctorViewModel;
             _appointmentViewModel = appointmentViewModel;
-            _serviceProvider      = serviceProvider;
-            _currentView          = _dashboardViewModel;
+            _serviceProvider = serviceProvider;
+            _currentView = _dashboardViewModel;
 
-            _doctorViewModel.OpenDoctorDialog           += OpenDoctorDialog;
+            _doctorViewModel.OpenDoctorDialog += OpenDoctorDialog;
             _appointmentViewModel.OpenAppointmentDialog += OpenAppointmentDialog;
 
-            NavDashboardCommand    = new RelayCommand(() => { CurrentView = _dashboardViewModel;   ActiveNav = "Dashboard"; });
-            NavDoctorsCommand      = new RelayCommand(() => { CurrentView = _doctorViewModel;       ActiveNav = "Doctors"; });
-            NavAppointmentsCommand = new RelayCommand(() => { CurrentView = _appointmentViewModel;  ActiveNav = "Appointments"; });
+            // Auto-refresh dashboard every time you navigate to it
+            NavDashboardCommand = new RelayCommand(async () =>
+            {
+                CurrentView = _dashboardViewModel;
+                ActiveNav = "Dashboard";
+                await _dashboardViewModel.LoadAsync();
+            });
+
+            NavDoctorsCommand = new RelayCommand(() =>
+            {
+                CurrentView = _doctorViewModel;
+                ActiveNav = "Doctors";
+            });
+
+            NavAppointmentsCommand = new RelayCommand(() =>
+            {
+                CurrentView = _appointmentViewModel;
+                ActiveNav = "Appointments";
+            });
         }
 
         private async void OpenAppointmentDialog(AppointmentDto? dto)
         {
             var vm = _serviceProvider.GetRequiredService<AddEditAppointmentViewModel>();
-            await vm.InitializeAsync(); // ← await properly
 
-            if (dto != null) vm.LoadAppointment(dto);
+            if (dto != null)
+                vm.LoadAppointment(dto);
+
+            await vm.InitializeAsync();
 
             var dialog = new AddEditAppointmentView(vm)
             {
@@ -106,7 +124,7 @@ namespace OpdManager.Presentation.ViewModels
                 vm.OnCancelled -= OnCancelled;
                 dialog.Close();
                 await _doctorViewModel.LoadAsync();
-                _appointmentViewModel.ResetDoctorsCache(); // ← reset so new doctor appears
+                _appointmentViewModel.ResetDoctorsCache();
             }
 
             void OnCancelled()

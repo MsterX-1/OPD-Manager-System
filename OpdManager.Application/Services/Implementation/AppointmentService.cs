@@ -50,8 +50,18 @@ namespace OpdManager.Application.Services.Implementations
 
                 await _uow.Appointments.AddAsync(appointment);
             }
-            else // Edit existing — fetch tracked instance, update it
+            else // Edit existing
             {
+                // Validate slot but exclude the current appointment being edited
+                var available = await _uow.Appointments.IsSlotAvailableAsync(
+                    appointment.DoctorId,
+                    appointment.AppointmentDate,
+                    appointment.TimeSlot,
+                    excludeAppointmentId: appointment.Id); // ← pass current id
+
+                if (!available)
+                    return (false, "This time slot is already booked for the selected doctor.");
+
                 var existing = await _uow.Appointments.GetByIdAsync(appointment.Id);
                 if (existing is null)
                     return (false, "Appointment not found.");
@@ -76,6 +86,14 @@ namespace OpdManager.Application.Services.Implementations
 
             appointment.Status = AppointmentStatus.Cancelled;
             _uow.Appointments.Update(appointment);
+
+            // Also cancel the queue entry if it exists
+            if (appointment.QueueEntry != null)
+            {
+                appointment.QueueEntry.Status = QueueStatus.Skipped;
+                _uow.Queue.Update(appointment.QueueEntry);
+            }
+
             await _uow.SaveChangesAsync();
             return true;
         }
@@ -93,6 +111,8 @@ namespace OpdManager.Application.Services.Implementations
         private static AppointmentDto MapToDto(Appointment a) => new()
         {
             Id = a.Id,
+            PatientId = a.PatientId,
+            DoctorId = a.DoctorId,
             PatientName = a.Patient.FullName,
             DoctorName = a.Doctor.Name,
             DoctorSpecialty = a.Doctor.Specialty,

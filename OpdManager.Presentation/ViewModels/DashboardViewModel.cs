@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using OpdManager.Application.Interfaces;
+﻿using OpdManager.Application.Services.Interfaces;
 using OpdManager.Presentation.Core;
 
 namespace OpdManager.Presentation.ViewModels
 {
     public class DashboardViewModel : BaseViewModel
     {
-        private readonly IUnitOfWork _uow;
+        private readonly IQueueService _queueService; 
 
-        // Stats
         private int _totalPatientsToday;
         private int _waitingPatients;
         private int _inProgressPatients;
@@ -69,9 +65,9 @@ namespace OpdManager.Presentation.ViewModels
 
         public RelayCommand RefreshCommand { get; }
 
-        public DashboardViewModel(IUnitOfWork uow)
+        public DashboardViewModel(IQueueService queueService)
         {
-            _uow = uow;
+            _queueService = queueService;
             RefreshCommand = new RelayCommand(async () => await LoadAsync());
         }
 
@@ -80,33 +76,16 @@ namespace OpdManager.Presentation.ViewModels
             IsLoading = true;
             try
             {
-                var today = DateTime.Today;
-                var todayAppointments = (await _uow.Appointments.GetByDateAsync(today)).ToList();
-                var todayQueue = (await _uow.Queue.GetTodayQueueAsync()).ToList();
-                var doctors = (await _uow.Doctors.GetActiveAsync()).ToList();
-                var issues = (await _uow.Issues.GetByStatusAsync(Domain.Enums.IssueStatus.Open)).ToList();
+                // Use service which has correct business logic
+                var stats = await _queueService.GetDashboardStatsAsync();
 
-                TotalPatientsToday = todayAppointments.Count;
-
-                WaitingPatients = todayQueue
-                    .Count(q => q.Status == Domain.Enums.QueueStatus.Waiting);
-
-                InProgressPatients = todayQueue
-                    .Count(q => q.Status == Domain.Enums.QueueStatus.InProgress);
-
-                CompletedPatients = todayQueue
-                    .Count(q => q.Status == Domain.Enums.QueueStatus.Done);
-
-                var completedWithTimes = todayQueue
-                    .Where(q => q.Status == Domain.Enums.QueueStatus.Done && q.StartTime.HasValue)
-                    .ToList();
-
-                AverageWaitingMinutes = completedWithTimes.Any()
-                    ? completedWithTimes.Average(q => (q.StartTime!.Value - q.CheckInTime).TotalMinutes)
-                    : 0;
-
-                ActiveDoctors = doctors.Count;
-                OpenIssues = issues.Count;
+                TotalPatientsToday = stats.TotalPatientsToday;
+                WaitingPatients = stats.WaitingPatients;
+                InProgressPatients = stats.InProgressPatients;
+                CompletedPatients = stats.CompletedPatients;
+                AverageWaitingMinutes = stats.AverageWaitingMinutes;
+                ActiveDoctors = stats.ActiveDoctors;
+                OpenIssues = stats.OpenIssues;
                 LastUpdated = $"Last updated: {DateTime.Now:hh:mm tt}";
             }
             finally

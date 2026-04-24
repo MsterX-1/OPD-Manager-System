@@ -75,16 +75,23 @@ namespace OpdManager.Application.Services.Implementations
             var activeDoctors = (await _uow.Doctors.GetActiveAsync()).ToList();
             var openIssues = (await _uow.Issues.GetByStatusAsync(IssueStatus.Open)).ToList();
 
-            var completed = todayQueue
+            // Exclude skipped (cancelled) queue entries from stats
+            var activeQueue = todayQueue
+                .Where(q => q.Status != QueueStatus.Skipped)
+                .ToList();
+
+            var completed = activeQueue
                 .Where(q => q.Status == QueueStatus.Done && q.StartTime.HasValue)
                 .ToList();
 
             return new DashboardDto
             {
-                TotalPatientsToday = todayAppointments.Count,
-                WaitingPatients = todayQueue.Count(q => q.Status == QueueStatus.Waiting),
-                InProgressPatients = todayQueue.Count(q => q.Status == QueueStatus.InProgress),
-                CompletedPatients = todayQueue.Count(q => q.Status == QueueStatus.Done),
+                // Only count non-cancelled appointments
+                TotalPatientsToday = todayAppointments
+                    .Count(a => a.Status != AppointmentStatus.Cancelled),
+                WaitingPatients = activeQueue.Count(q => q.Status == QueueStatus.Waiting),
+                InProgressPatients = activeQueue.Count(q => q.Status == QueueStatus.InProgress),
+                CompletedPatients = activeQueue.Count(q => q.Status == QueueStatus.Done),
                 AverageWaitingMinutes = completed.Any()
                     ? completed.Average(q => (q.StartTime!.Value - q.CheckInTime).TotalMinutes)
                     : 0,

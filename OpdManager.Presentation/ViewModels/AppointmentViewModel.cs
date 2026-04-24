@@ -14,14 +14,17 @@ public class AppointmentViewModel : BaseViewModel
     private readonly IDoctorService _doctorService;
     private readonly IQueueService _queueService;
 
+    // Sentinel object — Id = -1 means "All Doctors", never touches DB
+    public static readonly Doctor AllDoctors = new() { Id = -1, Name = "All Doctors" };
+
     private ObservableCollection<AppointmentDto> _appointments = new();
     private AppointmentDto? _selectedAppointment;
     private DateTime _selectedDate = DateTime.Today;
-    private ObservableCollection<Doctor?> _doctors = new();
-    private Doctor? _filterDoctor;
+    private ObservableCollection<Doctor> _doctors = new();
+    private Doctor _filterDoctor = AllDoctors;
     private bool _isLoading;
     private bool _doctorsLoaded = false;
-    private bool _suppressFilterReload = false; // ← prevents reentrance
+    private bool _suppressFilterReload = false;
 
     public ObservableCollection<AppointmentDto> Appointments
     {
@@ -53,19 +56,20 @@ public class AppointmentViewModel : BaseViewModel
         }
     }
 
-    public ObservableCollection<Doctor?> Doctors
+    // Non-nullable — always has a value (at least AllDoctors sentinel)
+    public ObservableCollection<Doctor> Doctors
     {
         get => _doctors;
         set => SetProperty(ref _doctors, value);
     }
 
-    public Doctor? FilterDoctor
+    public Doctor FilterDoctor
     {
         get => _filterDoctor;
         set
         {
-            SetProperty(ref _filterDoctor, value);
-            if (!_suppressFilterReload) // ← only reload if not restoring selection
+            SetProperty(ref _filterDoctor, value ?? AllDoctors);
+            if (!_suppressFilterReload)
                 _ = LoadAsync();
         }
     }
@@ -122,19 +126,18 @@ public class AppointmentViewModel : BaseViewModel
             if (!_doctorsLoaded)
             {
                 var doctors = await _doctorService.GetAllAsync();
-                var currentId = FilterDoctor?.Id;
+                var currentId = FilterDoctor.Id; // never null now
 
-                // Suppress reload while we restore the selection
                 _suppressFilterReload = true;
 
-                Doctors = new ObservableCollection<Doctor?> { null };
+                Doctors = new ObservableCollection<Doctor> { AllDoctors };
                 foreach (var d in doctors)
                     Doctors.Add(d);
 
-                // Restore previous selection without triggering LoadAsync again
-                FilterDoctor = currentId != null
-                    ? Doctors.FirstOrDefault(d => d?.Id == currentId)
-                    : null;
+                // Restore selection — fall back to AllDoctors if not found
+                FilterDoctor = currentId == -1
+                    ? AllDoctors
+                    : Doctors.FirstOrDefault(d => d.Id == currentId) ?? AllDoctors;
 
                 _suppressFilterReload = false;
                 _doctorsLoaded = true;
@@ -142,7 +145,8 @@ public class AppointmentViewModel : BaseViewModel
 
             var appointments = await _appointmentService.GetByDateAsync(SelectedDate);
 
-            if (FilterDoctor != null)
+            // Id == -1 means AllDoctors sentinel → show everything
+            if (FilterDoctor.Id != -1)
                 appointments = appointments
                     .Where(a => a.DoctorName == FilterDoctor.Name);
 
@@ -159,15 +163,19 @@ public class AppointmentViewModel : BaseViewModel
     {
         if (SelectedAppointment is null) return;
 
+        // Capture before LoadAsync clears selection
+        var patientName = SelectedAppointment.PatientName;
+        var appointmentId = SelectedAppointment.Id;
+
         var result = MessageBox.Show(
-            $"Permanently delete appointment for {SelectedAppointment.PatientName}?\n\nThis cannot be undone.",
+            $"Permanently delete appointment for {patientName}?\n\nThis cannot be undone.",
             "Confirm Delete",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
         if (result != MessageBoxResult.Yes) return;
 
-        await _appointmentService.DeleteAsync(SelectedAppointment.Id);
+        await _appointmentService.DeleteAsync(appointmentId);
         await LoadAsync();
     }
 
@@ -175,15 +183,19 @@ public class AppointmentViewModel : BaseViewModel
     {
         if (SelectedAppointment is null) return;
 
+        // Capture before LoadAsync clears selection
+        var patientName = SelectedAppointment.PatientName;
+        var appointmentId = SelectedAppointment.Id;
+
         var result = MessageBox.Show(
-            $"Cancel appointment for {SelectedAppointment.PatientName}?",
+            $"Cancel appointment for {patientName}?",
             "Confirm Cancel",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
         if (result != MessageBoxResult.Yes) return;
 
-        await _appointmentService.CancelAsync(SelectedAppointment.Id);
+        await _appointmentService.CancelAsync(appointmentId);
         await LoadAsync();
     }
 
@@ -191,6 +203,7 @@ public class AppointmentViewModel : BaseViewModel
     {
         if (SelectedAppointment is null) return;
 
+        // Capture before LoadAsync clears selection
         var patientName = SelectedAppointment.PatientName;
         var appointmentId = SelectedAppointment.Id;
 

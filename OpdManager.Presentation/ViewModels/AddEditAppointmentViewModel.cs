@@ -17,6 +17,8 @@ public class AddEditAppointmentViewModel : BaseViewModel
     private int _id;
     private bool _isEditMode;
     private string _title = "New Appointment";
+    private int _editPatientId;
+    private int _editDoctorId;
 
     private Doctor? _selectedDoctor;
     private Patient? _selectedPatient;
@@ -157,6 +159,23 @@ public class AddEditAppointmentViewModel : BaseViewModel
         Doctors.Clear();
         foreach (var d in doctors.Where(d => d.IsActive))
             Doctors.Add(d);
+
+        // If editing, restore SelectedDoctor and SelectedPatient after doctors loaded
+        if (_isEditMode)
+        {
+            SelectedDoctor = Doctors.FirstOrDefault(d => d.Id == _editDoctorId);
+
+            // Load patient by id to get the actual Patient object
+            if (_editPatientId > 0)
+            {
+                var patient = await _patientService.GetByIdAsync(_editPatientId);
+                if (patient != null)
+                {
+                    SelectedPatient = patient;
+                    PatientSearch = patient.FullName;
+                }
+            }
+        }
     }
 
     public void LoadAppointment(AppointmentDto dto)
@@ -164,9 +183,12 @@ public class AddEditAppointmentViewModel : BaseViewModel
         _isEditMode = true;
         Title = "Edit Appointment";
         _id = dto.Id;
+        _editPatientId = dto.PatientId;
+        _editDoctorId = dto.DoctorId;
         AppointmentDate = dto.AppointmentDate;
         SelectedTimeSlot = dto.TimeSlot;
         Notes = dto.Notes ?? string.Empty;
+        // Doctor and Patient restored in InitializeAsync after collections load
     }
 
     private void GenerateTimeSlots()

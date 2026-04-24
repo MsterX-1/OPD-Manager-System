@@ -87,31 +87,15 @@
                     Margin="0,0,8,0"/>
 
             <!-- Doctor filter -->
-			<Border Grid.Column="2" Background="White" CornerRadius="8"
-					BorderBrush="#E0E0E0" BorderThickness="1"
-					Padding="8,4" Margin="0,0,8,0" MinWidth="160">
-				<ComboBox ItemsSource="{Binding Doctors}"
-						  SelectedItem="{Binding FilterDoctor}"
-						  BorderThickness="0" Background="Transparent"
-						  FontSize="13">
-					<ComboBox.ItemTemplate>
-						<DataTemplate>
-							<TextBlock>
-								<TextBlock.Style>
-									<Style TargetType="TextBlock">
-										<Setter Property="Text" Value="{Binding Name}"/>
-										<Style.Triggers>
-											<DataTrigger Binding="{Binding}" Value="{x:Null}">
-												<Setter Property="Text" Value="All Doctors"/>
-											</DataTrigger>
-										</Style.Triggers>
-									</Style>
-								</TextBlock.Style>
-							</TextBlock>
-						</DataTemplate>
-					</ComboBox.ItemTemplate>
-				</ComboBox>
-			</Border>
+            <Border Grid.Column="2" Background="White" CornerRadius="8"
+                    BorderBrush="#E0E0E0" BorderThickness="1"
+                    Padding="8,4" Margin="0,0,8,0" MinWidth="160">
+                <ComboBox ItemsSource="{Binding Doctors}"
+                          SelectedItem="{Binding FilterDoctor}"
+                          DisplayMemberPath="Name"
+                          BorderThickness="0" Background="Transparent"
+                          FontSize="13"/>
+            </Border>
 
             <!-- Action buttons -->
             <Button Grid.Column="4"

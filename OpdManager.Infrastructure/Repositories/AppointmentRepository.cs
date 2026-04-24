@@ -41,14 +41,15 @@ namespace OpdManager.Infrastructure.Repositories
             return list.OrderBy(a => a.TimeSlot);
         }
 
-        public async Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot)
+        public async Task<bool> IsSlotAvailableAsync(int doctorId, DateTime date, TimeSpan timeSlot, int excludeAppointmentId = 0)
         {
             var ticks = timeSlot.Ticks;
             return !await DbSet.AnyAsync(a =>
                 a.DoctorId == doctorId &&
                 a.AppointmentDate.Date == date.Date &&
                 a.TimeSlotTicks == ticks &&
-                a.Status != Domain.Enums.AppointmentStatus.Cancelled);
+                a.Status != Domain.Enums.AppointmentStatus.Cancelled &&
+                a.Id != excludeAppointmentId); // ← exclude current appointment
         }
 
         public async Task<PagedResult<Appointment>> GetByDatePagedAsync(

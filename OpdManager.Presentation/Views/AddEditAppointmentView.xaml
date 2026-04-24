@@ -99,26 +99,50 @@
                          Tag="Search patient by name or phone..."
                          Margin="0,0,0,4"/>
 
-				<!-- Search Results Dropdown -->
-				<Border Visibility="{Binding ShowPatientResults, Converter={StaticResource BoolToVis}}"
-                        Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
-                        CornerRadius="6" Margin="0,0,0,4" MaxHeight="150">
-					<ListBox ItemsSource="{Binding PatientResults}"
-                             DisplayMemberPath="FullName"
-                             BorderThickness="0"
-                             FontSize="13">
-						<ListBox.ItemContainerStyle>
-							<Style TargetType="ListBoxItem">
-								<Setter Property="Padding" Value="12,8"/>
-								<Setter Property="Cursor" Value="Hand"/>
-								<EventSetter Event="MouseLeftButtonUp"
-                                             Handler="PatientResult_Click"/>
-							</Style>
-						</ListBox.ItemContainerStyle>
-					</ListBox>
-				</Border>
+                <!-- Search Results Dropdown -->
+                <Border Visibility="{Binding ShowPatientResults, Converter={StaticResource BoolToVis}}"
+        Background="White" BorderBrush="#E0E0E0" BorderThickness="1"
+        CornerRadius="6" Margin="0,0,0,4" MaxHeight="150">
+                    <ListBox ItemsSource="{Binding PatientResults}"
+             DisplayMemberPath="FullName"
+             BorderThickness="0"
+             FontSize="13"
+             Background="Transparent">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="12,10"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Background" Value="#F8F9FA"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                <Setter Property="BorderBrush" Value="#F0F0F0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#E3F2FD"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="#BBDEFB"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <EventSetter Event="MouseLeftButtonUp"
+                             Handler="PatientResult_Click"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                </Border>
 
-				<!-- Quick Add toggle -->
+                <!-- Quick Add toggle -->
 				<Button Content="＋ New patient (quick add)"
                         Command="{Binding ToggleQuickAddCommand}"
                         Background="Transparent" BorderThickness="0"
