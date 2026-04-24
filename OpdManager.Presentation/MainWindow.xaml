@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:OpdManager.Presentation.Views"
         xmlns:vm="clr-namespace:OpdManager.Presentation.ViewModels"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Title="OPD Manager" Height="700" Width="1100"
         WindowStartupLocation="CenterScreen"
         Background="#F0F2F5">
 
     <Window.Resources>
-        <!-- Nav Button Style -->
         <Style x:Key="NavButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="#B0BEC5"/>
@@ -58,7 +58,6 @@
                                    FontWeight="Bold"
                                    Margin="0,6,0,0"/>
                         <TextBlock Text="{Binding Source={x:Static sys:DateTime.Now}, StringFormat='dddd, MMM dd'}"
-                                   xmlns:sys="clr-namespace:System;assembly=mscorlib"
                                    Foreground="#607D8B"
                                    FontSize="11"/>
                     </StackPanel>
@@ -66,17 +65,37 @@
 
                 <!-- Nav Items -->
                 <StackPanel DockPanel.Dock="Top" Margin="12,16,12,0">
-                    <Button Content="📊  Dashboard"
-                            Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding NavDashboardCommand}"
-                            Foreground="White"
-                            Background="#263238"/>
 
-                    <!-- These will be wired in later phases -->
+                    <Button Content="📊  Dashboard"
+                            Command="{Binding NavDashboardCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveNav}" Value="Dashboard">
+                                        <Setter Property="Background" Value="#263238"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
                     <Button Content="👨‍⚕️  Doctors"
                             Command="{Binding NavDoctorsCommand}"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="0,4,0,0"/>      
+                            Margin="0,4,0,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveNav}" Value="Doctors">
+                                        <Setter Property="Background" Value="#263238"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Future phases — no commands yet -->
                     <Button Content="📅  Appointments"
                             Style="{StaticResource NavButtonStyle}"
                             Margin="0,4,0,0"/>
@@ -89,6 +108,7 @@
                     <Button Content="📤  Reports"
                             Style="{StaticResource NavButtonStyle}"
                             Margin="0,4,0,0"/>
+
                 </StackPanel>
             </DockPanel>
         </Border>

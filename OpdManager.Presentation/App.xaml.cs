@@ -63,9 +63,15 @@ public partial class App : System.Windows.Application
 
         // ViewModels
         services.AddScoped<DashboardViewModel>();
-        services.AddScoped<MainViewModel>();
         services.AddScoped<DoctorViewModel>();
-        services.AddScoped<AddEditDoctorViewModel>();
+        services.AddTransient<AddEditDoctorViewModel>();
+
+        // MainViewModel — manual factory to inject IServiceProvider
+        services.AddScoped<MainViewModel>(provider => new MainViewModel(
+            provider.GetRequiredService<DashboardViewModel>(),
+            provider.GetRequiredService<DoctorViewModel>(),
+            provider
+        ));
 
         // Windows
         services.AddTransient<MainWindow>();
