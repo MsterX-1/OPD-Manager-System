@@ -64,6 +64,8 @@ public partial class App : System.Windows.Application
         // ViewModels
         services.AddScoped<DashboardViewModel>();
         services.AddScoped<MainViewModel>();
+        services.AddScoped<DoctorViewModel>();
+        services.AddScoped<AddEditDoctorViewModel>();
 
         // Windows
         services.AddTransient<MainWindow>();

@@ -74,8 +74,9 @@
 
                     <!-- These will be wired in later phases -->
                     <Button Content="👨‍⚕️  Doctors"
+                            Command="{Binding NavDoctorsCommand}"
                             Style="{StaticResource NavButtonStyle}"
-                            Margin="0,4,0,0"/>
+                            Margin="0,4,0,0"/>      
                     <Button Content="📅  Appointments"
                             Style="{StaticResource NavButtonStyle}"
                             Margin="0,4,0,0"/>
@@ -98,6 +99,9 @@
                 <ContentControl.Resources>
                     <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
                         <views:DashboardView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:DoctorViewModel}">
+                        <views:DoctorsView/>
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>

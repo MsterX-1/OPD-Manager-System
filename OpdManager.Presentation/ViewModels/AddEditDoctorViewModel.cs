@@ -106,16 +106,17 @@ namespace OpdManager.Presentation.ViewModels
         {
             if (_isEditMode)
             {
-                await _doctorService.UpdateAsync(new Doctor
-                {
-                    Id = _id,
-                    Name = Name,
-                    Specialty = Specialty,
-                    PhoneNumber = PhoneNumber,
-                    StartTime = StartTime,
-                    EndTime = EndTime,
-                    IsActive = IsActive
-                });
+                var existing = await _doctorService.GetByIdAsync(_id);
+                if (existing is null) return;
+
+                existing.Name = Name;
+                existing.Specialty = Specialty;
+                existing.PhoneNumber = PhoneNumber;
+                existing.StartTime = StartTime;
+                existing.EndTime = EndTime;
+                existing.IsActive = IsActive;
+
+                await _doctorService.UpdateAsync(existing);
             }
             else
             {

@@ -9,6 +9,7 @@ namespace OpdManager.Presentation.ViewModels
     {
         private BaseViewModel _currentView;
         private readonly DashboardViewModel _dashboardViewModel;
+        private readonly DoctorViewModel _doctorViewModel;
 
         public BaseViewModel CurrentView
         {
@@ -16,16 +17,18 @@ namespace OpdManager.Presentation.ViewModels
             set => SetProperty(ref _currentView, value);
         }
 
-        // Nav commands
         public RelayCommand NavDashboardCommand { get; }
+        public RelayCommand NavDoctorsCommand { get; }
 
-        public MainViewModel(DashboardViewModel dashboardViewModel)
+        public MainViewModel(DashboardViewModel dashboardViewModel,
+                             DoctorViewModel doctorViewModel)
         {
             _dashboardViewModel = dashboardViewModel;
+            _doctorViewModel = doctorViewModel;
             _currentView = _dashboardViewModel;
 
-            NavDashboardCommand = new RelayCommand(() =>
-                CurrentView = _dashboardViewModel);
+            NavDashboardCommand = new RelayCommand(() => CurrentView = _dashboardViewModel);
+            NavDoctorsCommand = new RelayCommand(() => CurrentView = _doctorViewModel);
         }
     }
 }
