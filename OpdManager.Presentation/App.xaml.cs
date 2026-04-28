@@ -65,15 +65,19 @@ public partial class App : System.Windows.Application
         services.AddScoped<DashboardViewModel>();
         services.AddScoped<DoctorViewModel>();
         services.AddScoped<AppointmentViewModel>();
+        services.AddScoped<QueueMonitorViewModel>();
+        services.AddScoped<IssueViewModel>();
         services.AddTransient<AddEditDoctorViewModel>();
         services.AddTransient<AddEditAppointmentViewModel>();
+        services.AddTransient<AddEditIssueViewModel>();
 
         // MainViewModel — manual factory to inject IServiceProvider
-        // Update MainViewModel factory
         services.AddScoped<MainViewModel>(provider => new MainViewModel(
             provider.GetRequiredService<DashboardViewModel>(),
             provider.GetRequiredService<DoctorViewModel>(),
             provider.GetRequiredService<AppointmentViewModel>(),
+            provider.GetRequiredService<QueueMonitorViewModel>(),
+            provider.GetRequiredService<IssueViewModel>(),
             provider
         ));
 

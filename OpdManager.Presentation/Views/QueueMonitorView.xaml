@@ -1,0 +1,227 @@
+<UserControl x:Class="OpdManager.Presentation.Views.QueueMonitorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:domain="clr-namespace:OpdManager.Domain.Enums;assembly=OpdManager.Domain"
+             xmlns:converters="clr-namespace:OpdManager.Presentation.Converters"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <converters:QueueStatusToColorConverter x:Key="QueueStatusToColorConverter"/>
+        <converters:QueueStatusToTextConverter x:Key="QueueStatusToTextConverter"/>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2"
+                                      Opacity="0.08" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel DockPanel.Dock="Left">
+                <TextBlock Text="Queue Monitor"
+                           FontSize="24" FontWeight="Bold" Foreground="#1C2833"/>
+                <TextBlock Text="Live patient queue — call, complete, or mark no-show"
+                           FontSize="12" Foreground="#90A4AE" Margin="0,4,0,0"/>
+            </StackPanel>
+            <Button DockPanel.Dock="Right"
+                    Content="⟳  Refresh"
+                    Command="{Binding RefreshCommand}"
+                    Background="#1C2833" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <!-- Summary cards -->
+        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,16">
+            <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="⏳" FontSize="20"/>
+                    <TextBlock Text="{Binding WaitingCount}"
+                               FontSize="32" FontWeight="Bold"
+                               Foreground="#E65100" Margin="0,6,0,2"/>
+                    <TextBlock Text="Waiting"
+                               FontSize="12" Foreground="#78909C"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="🔄" FontSize="20"/>
+                    <TextBlock Text="{Binding InProgressCount}"
+                               FontSize="32" FontWeight="Bold"
+                               Foreground="#1565C0" Margin="0,6,0,2"/>
+                    <TextBlock Text="In Progress"
+                               FontSize="12" Foreground="#78909C"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="✅" FontSize="20"/>
+                    <TextBlock Text="{Binding DoneCount}"
+                               FontSize="32" FontWeight="Bold"
+                               Foreground="#2E7D32" Margin="0,6,0,2"/>
+                    <TextBlock Text="Done"
+                               FontSize="12" Foreground="#78909C"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Action buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
+            <Button Content="📢  Call Next"
+                    Command="{Binding CallNextCommand}"
+                    Background="#1565C0" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    Margin="0,0,8,0"/>
+            <Button Content="✅  Mark Done"
+                    Command="{Binding MarkDoneCommand}"
+                    Background="#2E7D32" Foreground="White"
+                    Style="{StaticResource ActionButton}"
+                    Margin="0,0,8,0"/>
+            <Button Content="⚠️  No Show"
+                    Command="{Binding MarkNoShowCommand}"
+                    Background="#E65100" Foreground="White"
+                    Style="{StaticResource ActionButton}"/>
+        </StackPanel>
+
+        <!-- Queue DataGrid -->
+        <Border Grid.Row="3" Background="White" CornerRadius="12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="2"
+                                  Opacity="0.08" Color="#000000"/>
+            </Border.Effect>
+            <DataGrid ItemsSource="{Binding Queue}"
+                      SelectedItem="{Binding SelectedEntry}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="#F5F5F5"
+                      BorderThickness="0"
+                      RowHeight="52" FontSize="13"
+                      Background="White" RowBackground="White"
+                      AlternatingRowBackground="#FAFAFA"
+                      SelectionMode="Single"
+                      CanUserResizeRows="False"
+                      ColumnHeaderHeight="44">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="White"/>
+                        <Setter Property="Foreground" Value="#78909C"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="BorderBrush" Value="#F0F0F0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="Foreground" Value="#1C2833"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Status}"
+                                         Value="{x:Static domain:QueueStatus.InProgress}">
+                                <Setter Property="Background" Value="#FFF8E1"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}"
+                                         Value="{x:Static domain:QueueStatus.Done}">
+                                <Setter Property="Background" Value="#F1F8E9"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Status}"
+                                         Value="{x:Static domain:QueueStatus.Skipped}">
+                                <Setter Property="Background" Value="#FFEBEE"/>
+                                <Setter Property="Opacity" Value="0.6"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Queue #"
+                                        Binding="{Binding QueueNumber}"
+                                        Width="80"/>
+                    <DataGridTextColumn Header="Patient"
+                                        Binding="{Binding PatientName}"
+                                        Width="*"/>
+                    <DataGridTextColumn Header="Doctor"
+                                        Binding="{Binding DoctorName}"
+                                        Width="*"/>
+                    <DataGridTextColumn Header="Check-in"
+                                        Binding="{Binding CheckInTime, StringFormat=h:mm tt}"
+                                        Width="100"/>
+                    <DataGridTextColumn Header="Wait (min)"
+                                        Binding="{Binding WaitingMinutes}"
+                                        Width="90"/>
+                    <DataGridTemplateColumn Header="Status" Width="130">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="12" Padding="10,4"
+                                        HorizontalAlignment="Left" Margin="16,0"
+                                        Background="{Binding Status,
+                                                     Converter={StaticResource QueueStatusToColorConverter}}">
+                                    <TextBlock
+                                        Text="{Binding Status,
+                                               Converter={StaticResource QueueStatusToTextConverter}}"
+                                        FontSize="12" FontWeight="Medium"
+                                        Foreground="White"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -22,12 +22,22 @@ namespace OpdManager.Application.Services.Implementations
                 DoctorName = q.Appointment.Doctor.Name,
                 Status = q.Status,
                 CheckInTime = q.CheckInTime,
-                WaitingMinutes = q.WaitingMinutes ?? 0
+                // Wait time = time from check-in until called (StartTime)
+                // If not called yet = time waiting so far
+                WaitingMinutes = q.StartTime.HasValue
+                    ? (int)(q.StartTime.Value - q.CheckInTime).TotalMinutes
+                    : (int)(DateTime.Now - q.CheckInTime).TotalMinutes
             });
         }
 
         public async Task<QueueEntryDto> CheckInAsync(int appointmentId)
         {
+            // Prevent double check-in
+            var existing = await _uow.Queue.GetWhereAsync(
+                q => q.AppointmentId == appointmentId);
+            if (existing.Any())
+                throw new InvalidOperationException("Patient is already checked in.");
+
             var nextNumber = await _uow.Queue.GetNextQueueNumberAsync();
             var entry = new QueueEntry
             {
@@ -38,9 +48,12 @@ namespace OpdManager.Application.Services.Implementations
             };
 
             await _uow.Queue.AddAsync(entry);
+
+            // Appointment status stays Scheduled until called — correct behavior
+            // CheckIn just means patient arrived, not that consultation started
+
             await _uow.SaveChangesAsync();
 
-            // reload with navigation properties
             var saved = await _uow.Queue.GetByIdAsync(entry.Id);
             return new QueueEntryDto
             {
@@ -48,7 +61,7 @@ namespace OpdManager.Application.Services.Implementations
                 QueueNumber = saved.QueueNumber,
                 Status = saved.Status,
                 CheckInTime = saved.CheckInTime,
-                WaitingMinutes = saved.WaitingMinutes ?? 0
+                WaitingMinutes = 0
             };
         }
 
@@ -59,12 +72,28 @@ namespace OpdManager.Application.Services.Implementations
 
             entry.Status = status;
 
+            // Update times
             if (status == QueueStatus.InProgress)
                 entry.StartTime = DateTime.Now;
-            else if (status == QueueStatus.Done)
+            else if (status == QueueStatus.Done || status == QueueStatus.Skipped)
                 entry.EndTime = DateTime.Now;
 
             _uow.Queue.Update(entry);
+
+            // ← Sync appointment status based on queue status
+            var appointment = await _uow.Appointments.GetByIdAsync(entry.AppointmentId);
+            if (appointment != null)
+            {
+                appointment.Status = status switch
+                {
+                    QueueStatus.InProgress => AppointmentStatus.InProgress,
+                    QueueStatus.Done => AppointmentStatus.Completed,
+                    QueueStatus.Skipped => AppointmentStatus.NoShow,
+                    _ => appointment.Status // Waiting → no change
+                };
+                _uow.Appointments.Update(appointment);
+            }
+
             await _uow.SaveChangesAsync();
         }
 
@@ -75,7 +104,6 @@ namespace OpdManager.Application.Services.Implementations
             var activeDoctors = (await _uow.Doctors.GetActiveAsync()).ToList();
             var openIssues = (await _uow.Issues.GetByStatusAsync(IssueStatus.Open)).ToList();
 
-            // Exclude skipped (cancelled) queue entries from stats
             var activeQueue = todayQueue
                 .Where(q => q.Status != QueueStatus.Skipped)
                 .ToList();
@@ -86,9 +114,7 @@ namespace OpdManager.Application.Services.Implementations
 
             return new DashboardDto
             {
-                // Only count non-cancelled appointments
-                TotalPatientsToday = todayAppointments
-                    .Count(a => a.Status != AppointmentStatus.Cancelled),
+                TotalPatientsToday = todayAppointments.Count(a => a.Status != AppointmentStatus.Cancelled),
                 WaitingPatients = activeQueue.Count(q => q.Status == QueueStatus.Waiting),
                 InProgressPatients = activeQueue.Count(q => q.Status == QueueStatus.InProgress),
                 CompletedPatients = activeQueue.Count(q => q.Status == QueueStatus.Done),

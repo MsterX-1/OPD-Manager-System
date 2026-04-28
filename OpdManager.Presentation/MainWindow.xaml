@@ -110,11 +110,34 @@
                         </Button.Style>
                     </Button>
                     <Button Content="🔢  Queue Monitor"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="0,4,0,0"/>
+                            Command="{Binding NavQueueMonitorCommand}"
+                            Margin="0,4,0,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveNav}" Value="Queue">
+                                        <Setter Property="Background" Value="#263238"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
                     <Button Content="⚠️  Issues"
-                            Style="{StaticResource NavButtonStyle}"
-                            Margin="0,4,0,0"/>
+                            Command="{Binding NavIssuesCommand}"
+                            Margin="0,4,0,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ActiveNav}" Value="Issues">
+                                        <Setter Property="Background" Value="#263238"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <Button Content="📤  Reports"
                             Style="{StaticResource NavButtonStyle}"
                             Margin="0,4,0,0"/>
@@ -135,6 +158,12 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vm:AppointmentViewModel}">
                         <views:AppointmentsView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:QueueMonitorViewModel}">
+                        <views:QueueMonitorView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:IssueViewModel}">
+                        <views:IssuesView/>
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>

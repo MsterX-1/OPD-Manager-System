@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using OpdManager.Domain.Enums;
 
@@ -14,10 +15,10 @@ namespace OpdManager.Domain.Entities
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
 
-        // Computed (not stored)
+        [NotMapped]
         public int? WaitingMinutes => StartTime.HasValue
-            ? (int)(StartTime.Value - CheckInTime).TotalMinutes
-            : (int)(DateTime.Now - CheckInTime).TotalMinutes;
+            ? (int)(StartTime.Value - CheckInTime).TotalMinutes  // actual wait = check-in to called
+            : (int)(DateTime.Now - CheckInTime).TotalMinutes;    // still waiting = time so far
 
         // Foreign Key
         public int AppointmentId { get; set; }

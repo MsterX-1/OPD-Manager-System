@@ -16,6 +16,8 @@ namespace OpdManager.Presentation.ViewModels
         private readonly DoctorViewModel _doctorViewModel;
         private readonly AppointmentViewModel _appointmentViewModel;
         private readonly IServiceProvider _serviceProvider;
+        private readonly QueueMonitorViewModel _queueMonitorViewModel;
+        private readonly IssueViewModel _issueViewModel;
 
         private BaseViewModel _currentView;
         public BaseViewModel CurrentView
@@ -34,11 +36,15 @@ namespace OpdManager.Presentation.ViewModels
         public RelayCommand NavDashboardCommand { get; }
         public RelayCommand NavDoctorsCommand { get; }
         public RelayCommand NavAppointmentsCommand { get; }
+        public RelayCommand NavQueueMonitorCommand { get; }
+        public RelayCommand NavIssuesCommand { get; }
 
         public MainViewModel(
             DashboardViewModel dashboardViewModel,
             DoctorViewModel doctorViewModel,
             AppointmentViewModel appointmentViewModel,
+            QueueMonitorViewModel queueMonitorViewModel,
+            IssueViewModel issueViewModel,
             IServiceProvider serviceProvider)
         {
             _dashboardViewModel = dashboardViewModel;
@@ -46,9 +52,12 @@ namespace OpdManager.Presentation.ViewModels
             _appointmentViewModel = appointmentViewModel;
             _serviceProvider = serviceProvider;
             _currentView = _dashboardViewModel;
+            _queueMonitorViewModel = queueMonitorViewModel;
+            _issueViewModel = issueViewModel;
 
             _doctorViewModel.OpenDoctorDialog += OpenDoctorDialog;
             _appointmentViewModel.OpenAppointmentDialog += OpenAppointmentDialog;
+            _issueViewModel.OpenIssueDialog += OpenIssueDialog;
 
             // Auto-refresh dashboard every time you navigate to it
             NavDashboardCommand = new RelayCommand(async () =>
@@ -69,6 +78,50 @@ namespace OpdManager.Presentation.ViewModels
                 CurrentView = _appointmentViewModel;
                 ActiveNav = "Appointments";
             });
+            NavQueueMonitorCommand = new RelayCommand(async () =>
+            {
+                CurrentView = _queueMonitorViewModel;
+                ActiveNav = "Queue";
+                await _queueMonitorViewModel.LoadAsync();
+            });
+
+            NavIssuesCommand = new RelayCommand(async () =>
+            {
+                CurrentView = _issueViewModel;
+                ActiveNav = "Issues";
+                await _issueViewModel.LoadAsync();
+            });
+
+
+        }
+        private void OpenIssueDialog(Issue? issue)
+        {
+            var vm = _serviceProvider.GetRequiredService<AddEditIssueViewModel>();
+
+            var dialog = new AddIssueView(vm)
+            {
+                Owner = System.Windows.Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+
+            async void OnSaved()
+            {
+                vm.OnSaved -= OnSaved;
+                vm.OnCancelled -= OnCancelled;
+                dialog.Close();
+                await _issueViewModel.LoadAsync();
+            }
+
+            void OnCancelled()
+            {
+                vm.OnSaved -= OnSaved;
+                vm.OnCancelled -= OnCancelled;
+                dialog.Close();
+            }
+
+            vm.OnSaved += OnSaved;
+            vm.OnCancelled += OnCancelled;
+            dialog.ShowDialog();
         }
 
         private async void OpenAppointmentDialog(AppointmentDto? dto)
