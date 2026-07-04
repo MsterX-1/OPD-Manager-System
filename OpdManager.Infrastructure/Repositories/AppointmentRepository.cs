@@ -113,6 +113,7 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
     {
         var query = DbSet
             .Include(a => a.Doctor)
+            .Include(a => a.Patient)
             .Include(a => a.QueueEntry)
             .Where(a => a.PatientId == patientId);
 

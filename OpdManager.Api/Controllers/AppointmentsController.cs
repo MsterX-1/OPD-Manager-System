@@ -109,4 +109,12 @@ public class AppointmentsController : ControllerBase
         await _appointmentService.DeleteAsync(id);
         return NoContent();
     }
+
+    [HttpGet("availability")]
+    public async Task<IActionResult> GetAvailability([FromQuery] int doctorId, [FromQuery] DateTime date)
+    {
+        var availability = await _appointmentService.GetAvailabilityAsync(doctorId, date);
+        if (availability is null) return Ok(new { isCapEnabled = false });
+        return Ok(availability);
+    }
 }

@@ -68,24 +68,49 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("performance/pdf")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> PerformancePdf(
         [FromQuery] DateTime from,
-        [FromQuery] DateTime to)
+        [FromQuery] DateTime to,
+        [FromQuery] int? doctorId)
     {
-        var performance = (await _queueService.GetDoctorPerformanceAsync(from, to)).ToList();
+        var performance = (await _queueService.GetDoctorPerformanceAsync(from, to, doctorId)).ToList();
         var settings = await _settingsService.GetSettingsAsync();
         var pdf = _reportService.ExportDoctorPerformanceToPdf(performance, from, to, settings.HospitalName);
         return File(pdf, "application/pdf", $"doctor_performance_{from:yyyyMMdd}_{to:yyyyMMdd}.pdf");
     }
 
     [HttpGet("performance/excel")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> PerformanceExcel(
         [FromQuery] DateTime from,
-        [FromQuery] DateTime to)
+        [FromQuery] DateTime to,
+        [FromQuery] int? doctorId)
     {
-        var performance = (await _queueService.GetDoctorPerformanceAsync(from, to)).ToList();
+        var performance = (await _queueService.GetDoctorPerformanceAsync(from, to, doctorId)).ToList();
         var excel = _reportService.ExportDoctorPerformanceToExcel(performance, from, to);
         return File(excel, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"doctor_performance_{from:yyyyMMdd}_{to:yyyyMMdd}.xlsx");
+    }
+
+    [HttpGet("analytics")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Analytics(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var performance = await _queueService.GetDoctorPerformanceAsync(from, to);
+        return Ok(performance);
+    }
+
+    [HttpGet("analytics/details")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AnalyticsDetails(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] int doctorId)
+    {
+        var details = await _queueService.GetDoctorPatientDetailsAsync(from, to, doctorId);
+        return Ok(details);
     }
 }

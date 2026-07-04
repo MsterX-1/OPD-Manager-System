@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
-import axios from 'axios';
+import api from '../api';
 import toast from 'react-hot-toast';
 
 export default function Login() {
@@ -16,13 +16,13 @@ export default function Login() {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5073/api/auth/login', {
+      const response = await api.post('/auth/login', {
         email,
         password
       });
       
-      const { accessToken, refreshToken, user } = response.data;
-      setAuth(accessToken, refreshToken, user);
+      const { user } = response.data;
+      setAuth(user);
       
       toast.success(`Welcome back, ${user.fullName}`);
       navigate('/');

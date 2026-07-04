@@ -20,4 +20,5 @@ public interface IAppointmentService
     Task<bool> CancelAsync(int id);
     Task UpdateStatusAsync(int id, AppointmentStatus status);
     Task DeleteAsync(int id);
+    Task<AvailabilityDto?> GetAvailabilityAsync(int doctorId, DateTime date);
 }

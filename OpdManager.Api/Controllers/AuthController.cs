@@ -43,13 +43,10 @@ public class AuthController : ControllerBase
         var accessToken = GenerateAccessToken(user, roles);
         var refreshToken = await GenerateRefreshTokenAsync(user.Id);
 
-        var expirationMinutes = int.Parse(_config["Jwt:AccessTokenExpirationMinutes"] ?? "60");
+        AppendTokenCookies(accessToken, refreshToken);
 
-        return Ok(new LoginResponse
+        return Ok(new
         {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes),
             User = new UserInfo
             {
                 Id = user.Id,
@@ -60,13 +57,24 @@ public class AuthController : ControllerBase
         });
     }
 
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("AccessToken");
+        Response.Cookies.Delete("RefreshToken");
+        return Ok(new { message = "Logged out successfully" });
+    }
+
     [HttpPost("refresh")]
     [AllowAnonymous]
-    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+    public async Task<IActionResult> Refresh()
     {
+        if (!Request.Cookies.TryGetValue("RefreshToken", out var oldRefreshToken))
+            return Unauthorized(new { message = "No refresh token found in cookies." });
+
         var token = await _db.RefreshTokens
             .Include(t => t.User)
-            .FirstOrDefaultAsync(t => t.Token == request.RefreshToken && !t.IsRevoked);
+            .FirstOrDefaultAsync(t => t.Token == oldRefreshToken && !t.IsRevoked);
 
         if (token is null || token.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Invalid or expired refresh token." });
@@ -80,13 +88,10 @@ public class AuthController : ControllerBase
         var accessToken = GenerateAccessToken(user, roles);
         var newRefreshToken = await GenerateRefreshTokenAsync(user.Id);
 
-        var expirationMinutes = int.Parse(_config["Jwt:AccessTokenExpirationMinutes"] ?? "60");
+        AppendTokenCookies(accessToken, newRefreshToken);
 
-        return Ok(new LoginResponse
+        return Ok(new
         {
-            AccessToken = accessToken,
-            RefreshToken = newRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(expirationMinutes),
             User = new UserInfo
             {
                 Id = user.Id,
@@ -154,5 +159,19 @@ public class AuthController : ControllerBase
         _db.RefreshTokens.Add(token);
         await _db.SaveChangesAsync();
         return token.Token;
+    }
+
+    private void AppendTokenCookies(string accessToken, string refreshToken)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false, // Set to true in production with HTTPS
+            SameSite = SameSiteMode.Lax,
+            Expires = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:RefreshTokenExpirationDays"] ?? "7"))
+        };
+
+        Response.Cookies.Append("AccessToken", accessToken, cookieOptions);
+        Response.Cookies.Append("RefreshToken", refreshToken, cookieOptions);
     }
 }

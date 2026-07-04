@@ -9,5 +9,6 @@ public interface IQueueService
     Task<QueueEntryDto> CheckInAsync(int appointmentId);
     Task UpdateStatusAsync(int queueEntryId, QueueStatus status);
     Task<DashboardDto> GetDashboardStatsAsync();
-    Task<IEnumerable<DoctorPerformanceDto>> GetDoctorPerformanceAsync(DateTime from, DateTime to);
+    Task<IEnumerable<DoctorPerformanceDto>> GetDoctorPerformanceAsync(DateTime from, DateTime to, int? doctorId = null);
+    Task<IEnumerable<QueueEntryDto>> GetDoctorPatientDetailsAsync(DateTime from, DateTime to, int doctorId);
 }

@@ -16,3 +16,11 @@ public class AppointmentDto
     public int? WaitingMinutes { get; set; }
     public string? Notes { get; set; }
 }
+
+public class AvailabilityDto
+{
+    public bool IsCapEnabled { get; set; }
+    public int MaxCap { get; set; }
+    public int CurrentCount { get; set; }
+    public int RemainingSlots => Math.Max(0, MaxCap - CurrentCount);
+}

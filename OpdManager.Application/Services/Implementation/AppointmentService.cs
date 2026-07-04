@@ -143,6 +143,35 @@ public class AppointmentService : IAppointmentService
         await _uow.SaveChangesAsync();
     }
 
+    public async Task<AvailabilityDto?> GetAvailabilityAsync(int doctorId, DateTime date)
+    {
+        var doctor = await _uow.Doctors.GetByIdAsync(doctorId);
+        if (doctor is null) return null;
+
+        var dayOfWeek = date.DayOfWeek;
+        var schedule = await _uow.DoctorSchedules.GetByDoctorAndDayAsync(doctorId, dayOfWeek);
+        if (schedule is null || !schedule.IsWorking) return null;
+
+        var settings = await _settings.GetSettingsAsync();
+        if (!settings.EnableDailyAppointmentCap)
+        {
+            return new AvailabilityDto { IsCapEnabled = false };
+        }
+
+        var avgMinutes = doctor.AverageExaminationMinutes ?? settings.DefaultAverageExaminationMinutes;
+        var workingMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
+        var cap = (int)(workingMinutes / avgMinutes);
+        
+        var currentCount = await _uow.Appointments.CountByDoctorAndDateAsync(doctorId, date);
+
+        return new AvailabilityDto 
+        { 
+            IsCapEnabled = true, 
+            MaxCap = cap, 
+            CurrentCount = currentCount 
+        };
+    }
+
     private static PagedResult<AppointmentDto> MapPaged(PagedResult<Appointment> paged) =>
         new()
         {

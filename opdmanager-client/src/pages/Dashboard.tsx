@@ -1,14 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { useAuthStore } from '../store';
+
 import api from '../api';
 import { Users, Activity, Clock, CheckCircle2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
-  const token = useAuthStore(state => state.accessToken);
-
   const { data: stats, refetch } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: async () => {
@@ -18,11 +16,12 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    if (!token) return;
 
+    let isMounted = true;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5073';
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5073/hubs/dashboard", {
-        accessTokenFactory: () => token
+      .withUrl(`${API_URL}/hubs/dashboard`, {
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();
@@ -31,12 +30,15 @@ export default function Dashboard() {
       refetch();
     });
 
-    connection.start().catch(err => console.error("SignalR Connection Error: ", err));
+    connection.start().catch(err => {
+      if (isMounted) console.error("SignalR Connection Error: ", err);
+    });
 
     return () => {
+      isMounted = false;
       connection.stop();
     };
-  }, [token, refetch]);
+  }, [refetch]);
 
   if (!stats) return <div className="p-4">Loading stats...</div>;
 

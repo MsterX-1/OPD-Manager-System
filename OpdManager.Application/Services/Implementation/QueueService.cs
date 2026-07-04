@@ -25,7 +25,10 @@ public class QueueService : IQueueService
         if (existing.Any())
             throw new InvalidOperationException("Patient is already checked in.");
 
-        var nextNumber = await _uow.Queue.GetNextQueueNumberAsync();
+        var appointment = await _uow.Appointments.GetByIdAsync(appointmentId);
+        if (appointment == null) throw new InvalidOperationException("Appointment not found.");
+
+        var nextNumber = await _uow.Queue.GetNextQueueNumberAsync(appointment.DoctorId);
         var entry = new QueueEntry
         {
             AppointmentId = appointmentId,
@@ -110,23 +113,20 @@ public class QueueService : IQueueService
         };
     }
 
-    public async Task<IEnumerable<DoctorPerformanceDto>> GetDoctorPerformanceAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<DoctorPerformanceDto>> GetDoctorPerformanceAsync(DateTime from, DateTime to, int? doctorId = null)
     {
-        var allQueue = await _uow.Queue.GetWhereAsync(
-            q => q.Status == QueueStatus.Done &&
-                 q.CheckInTime.Date >= from.Date &&
-                 q.CheckInTime.Date <= to.Date);
-
-        var queueList = allQueue.ToList();
+        var queueList = await _uow.Queue.GetPerformanceQueueAsync(from, to);
 
         // Group by doctor (via Appointment navigation)
         var grouped = queueList
-            .Where(q => q.Appointment?.Doctor != null)
+            .Where(q => q.Appointment?.Doctor != null && (!doctorId.HasValue || q.Appointment.DoctorId == doctorId.Value))
             .GroupBy(q => new { q.Appointment.DoctorId, q.Appointment.Doctor.Name });
 
         return grouped.Select(g =>
         {
             var examined = g.Where(q => q.ExaminationMinutes.HasValue).ToList();
+            var waited = g.Where(q => q.WaitingMinutes.HasValue).ToList();
+            
             return new DoctorPerformanceDto
             {
                 DoctorId = g.Key.DoctorId,
@@ -135,9 +135,20 @@ public class QueueService : IQueueService
                 TotalExaminationMinutes = examined.Sum(q => q.ExaminationMinutes!.Value),
                 AverageExaminationMinutes = examined.Any()
                     ? examined.Average(q => q.ExaminationMinutes!.Value)
+                    : null,
+                TotalWaitingMinutes = waited.Sum(q => q.WaitingMinutes!.Value),
+                AverageWaitingMinutes = waited.Any()
+                    ? waited.Average(q => q.WaitingMinutes!.Value)
                     : null
             };
         });
+    }
+
+    public async Task<IEnumerable<QueueEntryDto>> GetDoctorPatientDetailsAsync(DateTime from, DateTime to, int doctorId)
+    {
+        var queueList = await _uow.Queue.GetPerformanceQueueAsync(from, to);
+        var doctorQueue = queueList.Where(q => q.Appointment?.DoctorId == doctorId).ToList();
+        return doctorQueue.Select(MapToDto);
     }
 
     private static QueueEntryDto MapToDto(QueueEntry q) => new()

@@ -106,16 +106,18 @@ public class ReportService : IReportService
                 {
                     table.ColumnsDefinition(cols =>
                     {
-                        cols.ConstantColumn(30);  // #
-                        cols.RelativeColumn(2);   // Doctor
-                        cols.RelativeColumn(1);   // Patients
-                        cols.RelativeColumn(1.5f);// Avg Min
-                        cols.RelativeColumn(1.5f);// Total Min
+                        cols.ConstantColumn(30);   // #
+                        cols.RelativeColumn(2);    // Doctor
+                        cols.RelativeColumn(1.2f); // Patients
+                        cols.RelativeColumn(1.2f); // Avg Wait
+                        cols.RelativeColumn(1.2f); // Total Wait
+                        cols.RelativeColumn(1.2f); // Avg Min
+                        cols.RelativeColumn(1.2f); // Total Min
                     });
 
                     table.Header(header =>
                     {
-                        foreach (var h in new[] { "#", "Doctor", "Patients", "Avg (min)", "Total (min)" })
+                        foreach (var h in new[] { "#", "Doctor", "Patients", "Avg Wait (m)", "Total Wait (m)", "Avg Exam (m)", "Total Exam (m)" })
                         {
                             header.Cell()
                                   .Background(Colors.Blue.Darken3)
@@ -134,8 +136,10 @@ public class ReportService : IReportService
                         table.Cell().Background(bg).Padding(8).Text((i + 1).ToString());
                         table.Cell().Background(bg).Padding(8).Text(d.DoctorName);
                         table.Cell().Background(bg).Padding(8).Text(d.PatientsExamined.ToString());
-                        table.Cell().Background(bg).Padding(8).Text(d.AverageExaminationMinutes?.ToString("F1") ?? "-");
-                        table.Cell().Background(bg).Padding(8).Text(d.TotalExaminationMinutes.ToString("F1"));
+                        table.Cell().Background(bg).Padding(8).Text(d.AverageWaitingMinutes?.ToString("F0") ?? "-").FontColor(Colors.Orange.Darken3);
+                        table.Cell().Background(bg).Padding(8).Text(d.TotalWaitingMinutes.ToString("F0")).FontColor(Colors.Orange.Darken3);
+                        table.Cell().Background(bg).Padding(8).Text(d.AverageExaminationMinutes?.ToString("F0") ?? "-").FontColor(Colors.Green.Darken3);
+                        table.Cell().Background(bg).Padding(8).Text(d.TotalExaminationMinutes.ToString("F0")).FontColor(Colors.Green.Darken3);
                     }
                 });
 
@@ -156,7 +160,7 @@ public class ReportService : IReportService
         using var workbook = new XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Doctor Performance");
 
-        var headers = new[] { "#", "Doctor", "Patients Examined", "Avg Examination (min)", "Total Examination (min)" };
+        var headers = new[] { "#", "Doctor", "Patients Examined", "Avg Wait (min)", "Total Wait (min)", "Avg Examination (min)", "Total Examination (min)" };
         for (int i = 0; i < headers.Length; i++)
         {
             var cell = worksheet.Cell(1, i + 1);
@@ -175,8 +179,10 @@ public class ReportService : IReportService
             worksheet.Cell(row, 1).Value = i + 1;
             worksheet.Cell(row, 2).Value = d.DoctorName;
             worksheet.Cell(row, 3).Value = d.PatientsExamined;
-            worksheet.Cell(row, 4).Value = d.AverageExaminationMinutes?.ToString("F1") ?? "-";
-            worksheet.Cell(row, 5).Value = d.TotalExaminationMinutes.ToString("F1");
+            worksheet.Cell(row, 4).Value = d.AverageWaitingMinutes?.ToString("F0") ?? "-";
+            worksheet.Cell(row, 5).Value = d.TotalWaitingMinutes.ToString("F0");
+            worksheet.Cell(row, 6).Value = d.AverageExaminationMinutes?.ToString("F0") ?? "-";
+            worksheet.Cell(row, 7).Value = d.TotalExaminationMinutes.ToString("F0");
 
             if (i % 2 == 0)
                 worksheet.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#F5F5F5");

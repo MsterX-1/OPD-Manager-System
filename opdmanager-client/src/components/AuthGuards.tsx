@@ -3,8 +3,8 @@ import { useAuthStore } from '../store';
 import Layout from './Layout';
 
 export function PrivateRoute() {
-  const accessToken = useAuthStore(state => state.accessToken);
-  return accessToken ? (
+  const user = useAuthStore(state => state.user);
+  return user ? (
     <Layout />
   ) : (
     <Navigate to="/login" replace />
@@ -12,9 +12,9 @@ export function PrivateRoute() {
 }
 
 export function AdminRoute() {
-  const { accessToken, user } = useAuthStore(state => state);
+  const user = useAuthStore(state => state.user);
   
-  if (!accessToken) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (user?.role !== 'Admin') return <Navigate to="/" replace />;
   
   return <Outlet />;

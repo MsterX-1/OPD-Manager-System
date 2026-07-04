@@ -1,12 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { useAuthStore } from '../store';
+
 import api from '../api';
 import toast from 'react-hot-toast';
 
 export default function QueueMonitor() {
-  const token = useAuthStore(state => state.accessToken);
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());
 
@@ -25,11 +24,12 @@ export default function QueueMonitor() {
   });
 
   useEffect(() => {
-    if (!token) return;
 
+    let isMounted = true;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5073';
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5073/hubs/queue", {
-        accessTokenFactory: () => token
+      .withUrl(`${API_URL}/hubs/queue`, {
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();
@@ -38,12 +38,15 @@ export default function QueueMonitor() {
       refetch();
     });
 
-    connection.start().catch(err => console.error("Queue SignalR Error: ", err));
+    connection.start().catch(err => {
+      if (isMounted) console.error("Queue SignalR Error: ", err);
+    });
 
     return () => {
+      isMounted = false;
       connection.stop();
     };
-  }, [token, refetch]);
+  }, [refetch]);
 
   const statusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: string }) => {
@@ -104,15 +107,22 @@ export default function QueueMonitor() {
               <div style={{ padding: '1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {items.map((item: any) => (
                   <div key={item.id} className="card" style={{ padding: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: col.color }}>#{item.queueNumber}</span>
-                      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        {getWaitTime(item.checkInTime, item.startTime)} min wait
-                      </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: col.color, background: 'var(--bg-secondary)', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>#{item.queueNumber}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          Wait: {getWaitTime(item.checkInTime, item.startTime)} min
+                        </span>
+                        {(item.status === 'InProgress' || item.status === 'Done') && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            Progress: {item.examinationMinutes ?? getWaitTime(item.startTime, item.endTime)} min
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>{item.patientName}</div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                      Dr. {item.doctorName} ({item.doctorSpecialty})
+                    <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.25rem' }}>{item.patientName}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      Dr. {item.doctorName} <span style={{ opacity: 0.7 }}>({item.doctorSpecialty})</span>
                     </div>
                     
                     {col.id === 'Waiting' && (
@@ -127,7 +137,7 @@ export default function QueueMonitor() {
                     {col.id === 'InProgress' && (
                       <button 
                         className="btn" 
-                        style={{ width: '100%', padding: '0.5rem', background: 'var(--success)', color: 'white' }}
+                        style={{ width: '100%', padding: '0.5rem', background: 'var(--success)', color: 'white', border: 'none' }}
                         onClick={() => statusMutation.mutate({ id: item.id, status: 'Done' })}
                       >
                         Complete

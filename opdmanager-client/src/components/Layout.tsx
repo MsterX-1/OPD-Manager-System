@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
-import { LayoutDashboard, Users, UserSquare2, CalendarDays, Activity, AlertCircle, FileBarChart, Settings, LogOut, UserCog } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare2, CalendarDays, Activity, AlertCircle, FileBarChart, Settings, LogOut, UserCog, PieChart } from 'lucide-react';
 
 export default function Layout() {
   const user = useAuthStore(state => state.user);
@@ -20,6 +20,7 @@ export default function Layout() {
     { to: "/doctors", icon: UserSquare2, label: "Doctors", role: "Admin" },
     { to: "/issues", icon: AlertCircle, label: "Issues" },
     { to: "/reports", icon: FileBarChart, label: "Reports" },
+    { to: "/analytics", icon: PieChart, label: "Analytics", role: "Admin" },
     { to: "/users", icon: UserCog, label: "Users", role: "Admin" },
     { to: "/settings", icon: Settings, label: "Settings", role: "Admin" },
   ];

@@ -8,7 +8,7 @@ namespace OpdManager.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class DoctorsController : ControllerBase
 {
     private readonly IDoctorService _doctorService;
@@ -19,6 +19,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
     {
         var doctors = await _doctorService.GetAllAsync();
@@ -26,7 +27,6 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("active")]
-    [Authorize] // Any authenticated user can see active doctors
     public async Task<IActionResult> GetActive()
     {
         var doctors = await _doctorService.GetActiveAsync();
@@ -34,6 +34,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetById(int id)
     {
         var doctor = await _doctorService.GetByIdAsync(id);
@@ -42,6 +43,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] DoctorRequest request)
     {
         var doctor = new Doctor
@@ -72,6 +74,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] DoctorRequest request)
     {
         var doctor = await _doctorService.GetByIdAsync(id);
@@ -99,6 +102,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpPatch("{id}/toggle-active")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ToggleActive(int id)
     {
         var doctor = await _doctorService.GetByIdAsync(id);
@@ -110,6 +114,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         try
@@ -124,6 +129,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{id}/schedule")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetSchedule(int id)
     {
         var schedule = await _doctorService.GetScheduleAsync(id);
@@ -141,7 +147,7 @@ public class DoctorsController : ControllerBase
         Schedules = d.Schedules.Select(s => new
         {
             s.Id,
-            s.DayOfWeek,
+            DayOfWeek = (int)s.DayOfWeek,
             StartTime = s.StartTime.ToString(@"hh\:mm"),
             EndTime = s.EndTime.ToString(@"hh\:mm"),
             s.IsWorking

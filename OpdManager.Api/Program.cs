@@ -56,17 +56,14 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 
-    // Allow SignalR to receive JWT from query string
+    // Read JWT from HttpOnly cookie
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) &&
-                (path.StartsWithSegments("/hubs/queue") || path.StartsWithSegments("/hubs/dashboard")))
+            if (context.Request.Cookies.TryGetValue("AccessToken", out var token))
             {
-                context.Token = accessToken;
+                context.Token = token;
             }
             return Task.CompletedTask;
         }
