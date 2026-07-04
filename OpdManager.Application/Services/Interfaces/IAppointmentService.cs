@@ -1,4 +1,4 @@
-﻿using OpdManager.Application.DTOs;
+using OpdManager.Application.DTOs;
 using OpdManager.Domain.Entities;
 using OpdManager.Domain.Enums;
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OpdManager.Application.DTOs;
 using OpdManager.Application.Interfaces.Repositories;
 using OpdManager.Domain.Entities;
@@ -17,39 +17,27 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
             .Include(a => a.QueueEntry)
             .FirstOrDefaultAsync(a => a.Id == id);
 
-    public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date)
-    {
-        var list = await DbSet
+    public async Task<IEnumerable<Appointment>> GetByDateAsync(DateTime date) =>
+        await DbSet
             .Include(a => a.Doctor)
             .Include(a => a.Patient)
             .Include(a => a.QueueEntry)
             .Where(a => a.AppointmentDate.Date == date.Date)
+            .OrderBy(a => a.CreatedAt)
             .ToListAsync();
 
-        return list.OrderBy(a => a.TimeSlot);
-    }
-
-    public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date)
-    {
-        var list = await DbSet
+    public async Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date) =>
+        await DbSet
             .Include(a => a.Patient)
             .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == date.Date)
+            .OrderBy(a => a.CreatedAt)
             .ToListAsync();
 
-        return list.OrderBy(a => a.TimeSlot);
-    }
-
-    public async Task<bool> IsSlotAvailableAsync(
-        int doctorId, DateTime date, TimeSpan timeSlot, int excludeAppointmentId = 0)
-    {
-        var ticks = timeSlot.Ticks;
-        return !await DbSet.AnyAsync(a =>
+    public async Task<int> CountByDoctorAndDateAsync(int doctorId, DateTime date) =>
+        await DbSet.CountAsync(a =>
             a.DoctorId == doctorId &&
             a.AppointmentDate.Date == date.Date &&
-            a.TimeSlotTicks == ticks &&
-            a.Status != Domain.Enums.AppointmentStatus.Cancelled &&
-            a.Id != excludeAppointmentId);
-    }
+            a.Status != Domain.Enums.AppointmentStatus.Cancelled);
 
     public async Task<PagedResult<Appointment>> GetByDatePagedAsync(
         DateTime date, int page, int pageSize, int doctorId = 0)
@@ -65,7 +53,7 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
 
         var totalCount = await query.CountAsync();
         var items = await query
-            .OrderBy(a => a.TimeSlotTicks)
+            .OrderBy(a => a.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -79,7 +67,6 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
         };
     }
 
-    // Production search — all filters at DB level, paginated
     public async Task<PagedResult<Appointment>> SearchPagedAsync(
         string? patientName, int doctorId,
         DateTime? fromDate, DateTime? toDate,
@@ -91,15 +78,12 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
             .Include(a => a.QueueEntry)
             .AsQueryable();
 
-        // Patient name filter — DB level LIKE
         if (!string.IsNullOrWhiteSpace(patientName))
             query = query.Where(a => a.Patient.FullName.Contains(patientName));
 
-        // Doctor filter
         if (doctorId > 0)
             query = query.Where(a => a.DoctorId == doctorId);
 
-        // Date range filter
         if (fromDate.HasValue)
             query = query.Where(a => a.AppointmentDate.Date >= fromDate.Value.Date);
 
@@ -108,10 +92,9 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
 
         var totalCount = await query.CountAsync();
 
-        // Order by date desc then time — most recent first
         var items = await query
             .OrderByDescending(a => a.AppointmentDate)
-            .ThenBy(a => a.TimeSlotTicks)
+            .ThenBy(a => a.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
@@ -125,7 +108,6 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
         };
     }
 
-    // Patient history — all appointments for one patient, paginated
     public async Task<PagedResult<Appointment>> GetByPatientPagedAsync(
         int patientId, int page, int pageSize)
     {
@@ -138,7 +120,7 @@ public class AppointmentRepository : BaseRepository<Appointment>, IAppointmentRe
 
         var items = await query
             .OrderByDescending(a => a.AppointmentDate)
-            .ThenBy(a => a.TimeSlotTicks)
+            .ThenBy(a => a.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

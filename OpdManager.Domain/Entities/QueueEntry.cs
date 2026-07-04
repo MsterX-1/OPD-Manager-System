@@ -1,27 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 using OpdManager.Domain.Enums;
 
-namespace OpdManager.Domain.Entities
+namespace OpdManager.Domain.Entities;
+
+public class QueueEntry
 {
-    public class QueueEntry
-    {
-        public int Id { get; set; }
-        public int QueueNumber { get; set; }
-        public QueueStatus Status { get; set; } = QueueStatus.Waiting;
-        public DateTime CheckInTime { get; set; } = DateTime.Now;
-        public DateTime? StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
+    public int Id { get; set; }
+    public int QueueNumber { get; set; }
+    public QueueStatus Status { get; set; } = QueueStatus.Waiting;
+    public DateTime CheckInTime { get; set; } = DateTime.UtcNow;
+    public DateTime? StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
 
-        [NotMapped]
-        public int? WaitingMinutes => StartTime.HasValue
-            ? (int)(StartTime.Value - CheckInTime).TotalMinutes  // actual wait = check-in to called
-            : (int)(DateTime.Now - CheckInTime).TotalMinutes;    // still waiting = time so far
+    /// <summary>
+    /// Waiting time in minutes: CheckInTime → StartTime (or now if still waiting).
+    /// </summary>
+    [NotMapped]
+    public int? WaitingMinutes => StartTime.HasValue
+        ? (int)(StartTime.Value - CheckInTime).TotalMinutes
+        : (int)(DateTime.UtcNow - CheckInTime).TotalMinutes;
 
-        // Foreign Key
-        public int AppointmentId { get; set; }
-        public Appointment Appointment { get; set; } = null!;
-    }
+    /// <summary>
+    /// Examination time in minutes: StartTime → EndTime.
+    /// Only meaningful for Done entries — null for Skipped or incomplete.
+    /// </summary>
+    [NotMapped]
+    public int? ExaminationMinutes =>
+        Status == QueueStatus.Done && StartTime.HasValue && EndTime.HasValue
+            ? (int)(EndTime.Value - StartTime.Value).TotalMinutes
+            : null;
+
+    // Foreign Key
+    public int AppointmentId { get; set; }
+    public Appointment Appointment { get; set; } = null!;
 }

@@ -1,4 +1,3 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
 using OpdManager.Domain.Enums;
 
 namespace OpdManager.Domain.Entities;
@@ -9,17 +8,7 @@ public class Appointment
     public DateTime AppointmentDate { get; set; }
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Scheduled;
     public string? Notes { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    // TimeSlot stored as long (ticks) — SQLite can't order/compare TimeSpan
-    public long TimeSlotTicks { get; set; }
-
-    [NotMapped]
-    public TimeSpan TimeSlot
-    {
-        get => TimeSpan.FromTicks(TimeSlotTicks);
-        set => TimeSlotTicks = value.Ticks;
-    }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Foreign Keys
     public int DoctorId { get; set; }

@@ -5,5 +5,5 @@
   <Project Path="OpdManager.Application/OpdManager.Application.csproj" />
   <Project Path="OpdManager.Domain/OpdManager.Domain.csproj" />
   <Project Path="OpdManager.Infrastructure/OpdManager.Infrastructure.csproj" />
-  <Project Path="OpdManager.Presentation/OpdManager.Presentation.csproj" />
+  <Project Path="OpdManager.Api/OpdManager.Api.csproj" />
 </Solution>

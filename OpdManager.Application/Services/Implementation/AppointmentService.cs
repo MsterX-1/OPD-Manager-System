@@ -1,4 +1,4 @@
-﻿using OpdManager.Application.DTOs;
+using OpdManager.Application.DTOs;
 using OpdManager.Application.Interfaces;
 using OpdManager.Application.Services.Interfaces;
 using OpdManager.Domain.Entities;
@@ -9,7 +9,13 @@ namespace OpdManager.Application.Services.Implementations;
 public class AppointmentService : IAppointmentService
 {
     private readonly IUnitOfWork _uow;
-    public AppointmentService(IUnitOfWork uow) => _uow = uow;
+    private readonly ISettingsService _settings;
+
+    public AppointmentService(IUnitOfWork uow, ISettingsService settings)
+    {
+        _uow = uow;
+        _settings = settings;
+    }
 
     public async Task<IEnumerable<AppointmentDto>> GetByDateAsync(DateTime date)
     {
@@ -49,32 +55,49 @@ public class AppointmentService : IAppointmentService
 
     public async Task<(bool Success, string Error)> BookAsync(Appointment appointment)
     {
+        // Validate doctor exists
+        var doctor = await _uow.Doctors.GetByIdAsync(appointment.DoctorId);
+        if (doctor is null)
+            return (false, "Doctor not found.");
+
+        // Validate patient exists
+        var patient = await _uow.Patients.GetByIdAsync(appointment.PatientId);
+        if (patient is null)
+            return (false, "Patient not found.");
+
+        // Validate doctor works on that weekday
+        var dayOfWeek = appointment.AppointmentDate.DayOfWeek;
+        var schedule = await _uow.DoctorSchedules.GetByDoctorAndDayAsync(appointment.DoctorId, dayOfWeek);
+        if (schedule is null || !schedule.IsWorking)
+            return (false, $"Dr. {doctor.Name} does not work on {dayOfWeek}s.");
+
+        // Check optional daily appointment cap
+        var settings = await _settings.GetSettingsAsync();
+        if (settings.EnableDailyAppointmentCap)
+        {
+            var avgMinutes = doctor.AverageExaminationMinutes ?? settings.DefaultAverageExaminationMinutes;
+            var workingMinutes = (schedule.EndTime - schedule.StartTime).TotalMinutes;
+            var cap = (int)(workingMinutes / avgMinutes);
+
+            var currentCount = await _uow.Appointments.CountByDoctorAndDateAsync(
+                appointment.DoctorId, appointment.AppointmentDate);
+
+            if (currentCount >= cap)
+                return (false, $"Dr. {doctor.Name} has reached the daily appointment cap ({cap}) for this date.");
+        }
+
         if (appointment.Id == 0)
         {
-            var available = await _uow.Appointments.IsSlotAvailableAsync(
-                appointment.DoctorId, appointment.AppointmentDate, appointment.TimeSlot);
-
-            if (!available)
-                return (false, "This time slot is already booked for the selected doctor.");
-
             await _uow.Appointments.AddAsync(appointment);
         }
         else
         {
-            var available = await _uow.Appointments.IsSlotAvailableAsync(
-                appointment.DoctorId, appointment.AppointmentDate,
-                appointment.TimeSlot, appointment.Id);
-
-            if (!available)
-                return (false, "This time slot is already booked for the selected doctor.");
-
             var existing = await _uow.Appointments.GetByIdAsync(appointment.Id);
             if (existing is null) return (false, "Appointment not found.");
 
             existing.DoctorId = appointment.DoctorId;
             existing.PatientId = appointment.PatientId;
             existing.AppointmentDate = appointment.AppointmentDate;
-            existing.TimeSlot = appointment.TimeSlot;
             existing.Notes = appointment.Notes;
 
             _uow.Appointments.Update(existing);
@@ -138,7 +161,6 @@ public class AppointmentService : IAppointmentService
         DoctorName = a.Doctor.Name,
         DoctorSpecialty = a.Doctor.Specialty,
         AppointmentDate = a.AppointmentDate,
-        TimeSlot = a.TimeSlot,
         Status = a.Status,
         QueueNumber = a.QueueEntry?.QueueNumber,
         WaitingMinutes = a.QueueEntry?.WaitingMinutes,

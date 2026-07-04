@@ -1,4 +1,4 @@
-﻿using OpdManager.Application.DTOs;
+using OpdManager.Application.DTOs;
 using OpdManager.Domain.Entities;
 
 namespace OpdManager.Application.Interfaces.Repositories;
@@ -14,7 +14,6 @@ public interface IAppointmentRepository : IBaseRepository<Appointment>
     Task<IEnumerable<Appointment>> GetByDoctorAsync(int doctorId, DateTime date);
     Task<PagedResult<Appointment>> GetByPatientPagedAsync(
         int patientId, int page, int pageSize);
-    Task<bool> IsSlotAvailableAsync(
-        int doctorId, DateTime date, TimeSpan timeSlot, int excludeAppointmentId = 0);
+    Task<int> CountByDoctorAndDateAsync(int doctorId, DateTime date);
     Task<IEnumerable<Appointment>> GetAllByDoctorAsync(int doctorId);
 }

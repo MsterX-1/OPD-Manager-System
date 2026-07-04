@@ -7,14 +7,15 @@
 
 ## Project Overview
 
-A **WPF desktop application** for an Outpatient Department (OPD) Manager.
-Fully offline, single-user, no network required.
+A **Web-based application** for an Outpatient Department (OPD) Manager.
+Architecture migrated from WPF/SQLite to ASP.NET Core Web API + React SPA + SQL Server.
 
 **Purpose:** Help the OPD manager control daily operations:
 - Manage doctors, patients, appointments
-- Monitor patient queue and waiting times
+- Monitor patient queue and waiting times in real-time
 - Track operational issues
-- Generate reports (PDF, Excel, Print)
+- Generate reports (PDF, Excel)
+- System administration and user management
 
 ---
 
@@ -22,14 +23,15 @@ Fully offline, single-user, no network required.
 
 | Layer | Technology |
 |---|---|
-| UI | WPF (C#), MVVM pattern |
-| Architecture | Clean Architecture (4 layers) |
+| Frontend (SPA) | React, TypeScript, Vite, TanStack Query, Zustand, React Router |
+| UI Design | Custom Premium Dark Theme (Vanilla CSS + Glassmorphism) |
+| API | ASP.NET Core Web API (.NET 10) |
+| Real-time | SignalR (Queue & Dashboard updates) |
+| Auth | ASP.NET Core Identity + JWT Bearer Tokens |
 | ORM | Entity Framework Core 10 |
-| Database | SQLite (local file `opd.db`) |
-| DI | Microsoft.Extensions.DependencyInjection |
+| Database | SQL Server |
 | PDF export | QuestPDF |
 | Excel export | ClosedXML |
-| Target framework | .NET 10 / net10.0-windows |
 
 ---
 
@@ -41,14 +43,16 @@ E:\Projects\C Sharp\OPD System\
 ├── CLAUDE.md                          ← this file
 ├── OpdManager.Domain\                 ← entities + enums only, no dependencies
 ├── OpdManager.Application\            ← interfaces + DTOs + service implementations
-├── OpdManager.Infrastructure\         ← EF Core, repositories, UoW, ReportService
-└── OpdManager.Presentation\           ← WPF, ViewModels, Views, DI wiring
+├── OpdManager.Infrastructure\         ← EF Core, Identity, repositories, UoW, ReportService
+├── OpdManager.Api\                    ← ASP.NET Core Web API, Controllers, SignalR Hubs
+└── opdmanager-client\                 ← React SPA frontend (Vite)
 ```
 
 ### Dependency Direction
 ```
-Presentation → Infrastructure → Application → Domain
-Presentation → Application (direct for service interfaces)
+Api → Infrastructure → Application → Domain
+Api → Application (direct for service interfaces)
+Client (React) → Api (via HTTP/REST & SignalR)
 ```
 
 ---
@@ -56,294 +60,157 @@ Presentation → Application (direct for service interfaces)
 ## Domain Layer — Entities & Enums
 
 ### Entities (`OpdManager.Domain/Entities/`)
-- `Doctor` — Id, Name, Specialty, PhoneNumber, StartTime, EndTime, IsActive
+- `Doctor` — Id, Name, Specialty, PhoneNumber, IsActive, AverageExaminationMinutes?
+- `DoctorSchedule` — Id, DoctorId, DayOfWeek, StartTime, EndTime, IsWorking
 - `Patient` — Id, FullName, PhoneNumber, DateOfBirth, Notes, CreatedAt
-- `Appointment` — Id, AppointmentDate, **TimeSlotTicks** (long, NOT TimeSpan — SQLite fix), Status, Notes, CreatedAt, DoctorId, PatientId
-  - `[NotMapped] TimeSpan TimeSlot` computed from `TimeSlotTicks`
+- `Appointment` — Id, AppointmentDate, Status, Notes, CreatedAt, DoctorId, PatientId
 - `QueueEntry` — Id, QueueNumber, Status, CheckInTime, StartTime?, EndTime?, AppointmentId
-  - `[NotMapped] int? WaitingMinutes` computed property
+  - `[NotMapped] int? WaitingMinutes` computed
+  - `[NotMapped] int? ExaminationMinutes` computed
 - `Issue` — Id, Title, Description, Category, Status, ReportedAt, ResolvedAt?, Resolution?, AppointmentId?
+- `AppSetting` — Key, Value (DB-backed config replacing old JSON file)
+
+### Infrastructure Entities (`OpdManager.Infrastructure/Identity/`)
+- `ApplicationUser` (extends IdentityUser) — FullName
+- `RefreshToken` — Token, UserId, ExpiresAt, IsRevoked
 
 ### Enums (`OpdManager.Domain/Enums/`)
 - `AppointmentStatus`: Scheduled, InProgress, Completed, Cancelled, NoShow
 - `QueueStatus`: Waiting, InProgress, Done, Skipped
 - `IssueStatus`: Open, InReview, Closed
 
-### Critical: TimeSpan → SQLite Fix
-SQLite cannot order/compare TimeSpan. Solution:
-- Store as `long TimeSlotTicks` in DB
-- Expose as `[NotMapped] TimeSpan TimeSlot` computed property
-- Always order by `TimeSlotTicks` in LINQ queries
-
 ---
 
 ## Application Layer
 
-### Interfaces (`OpdManager.Application/Interfaces/`)
-
-**`IBaseRepository<T>`** — Query(), GetAllAsync(), GetByIdAsync(), GetWhereAsync(), AddAsync(), Update(), Delete()
-
-**Repository interfaces** (all extend IBaseRepository):
-- `IDoctorRepository` — + GetActiveAsync()
-- `IPatientRepository` — + SearchAsync(term)
-- `IAppointmentRepository` — + GetByDateAsync(), GetByDatePagedAsync(), SearchPagedAsync(), GetByPatientPagedAsync(), GetByDoctorAsync(), IsSlotAvailableAsync(), GetAllByDoctorAsync()
-- `IIssueRepository` — + GetByStatusAsync(), SearchPagedAsync()
-- `IQueueRepository` — + GetTodayQueueAsync(), GetNextQueueNumberAsync()
-
-**`IUnitOfWork`** — Doctors, Patients, Appointments, Issues, Queue, SaveChangesAsync()
-
-### DTOs (`OpdManager.Application/DTOs/`)
-- `AppointmentDto` — Id, PatientId, DoctorId, PatientName, DoctorName, DoctorSpecialty, AppointmentDate, TimeSlot, Status, QueueNumber, WaitingMinutes, Notes
-- `QueueEntryDto` — Id, QueueNumber, PatientName, DoctorName, DoctorSpecialty, Status, CheckInTime, WaitingMinutes, StartTime?, EndTime?
-- `DashboardDto` — TotalPatientsToday, WaitingPatients, InProgressPatients, CompletedPatients, AverageWaitingMinutes, ActiveDoctors, OpenIssues
-- `PagedResult<T>` — Items, TotalCount, Page, PageSize, TotalPages, HasNext, HasPrevious
-
 ### Service Interfaces (`OpdManager.Application/Services/Interfaces/`)
-- `IDoctorService` — GetAllAsync, GetActiveAsync, GetByIdAsync, AddAsync, UpdateAsync, DeleteAsync
-- `IPatientService` — GetAllAsync, GetByIdAsync, SearchAsync, AddAsync, UpdateAsync, DeleteAsync
-- `IAppointmentService` — GetByDateAsync, GetByDatePagedAsync, SearchPagedAsync, GetByPatientPagedAsync, GetByIdAsync, BookAsync, CancelAsync, UpdateStatusAsync, DeleteAsync
-- `IQueueService` — GetTodayQueueAsync, CheckInAsync, UpdateStatusAsync, GetDashboardStatsAsync
-- `IIssueService` — SearchPagedAsync, GetAllAsync, GetOpenAsync, AddAsync, UpdateAsync, MarkInReviewAsync, CloseAsync, DeleteAsync
-- `IReportService` — ExportAppointmentsToPdf, ExportAppointmentsToExcel (NO print — print is WPF only)
-
-### Service Implementations (`OpdManager.Application/Services/Implementation/`)
-All services live in Application because they only depend on `IUnitOfWork`.
-Exception: `ReportService` lives in Infrastructure (depends on QuestPDF, ClosedXML).
+- `IDoctorService` — CRUD + GetScheduleAsync, SetScheduleAsync
+- `IPatientService` — CRUD + Search
+- `IAppointmentService` — CRUD + BookAsync (validates schedule & daily cap)
+- `IQueueService` — Queue ops, CheckIn, DashboardStats, GetDoctorPerformanceAsync
+- `IIssueService` — Issue workflow
+- `IReportService` — PDF/Excel generation (returns byte[])
+- `ISettingsService` — Get/Update settings from DB
 
 ---
 
 ## Infrastructure Layer
 
-### Repositories (`OpdManager.Infrastructure/Repositories/`)
-- `BaseRepository<T>` — implements `IBaseRepository<T>`, all shared CRUD
-- All concrete repos extend `BaseRepository<T>` and only add unique methods
-- `IssueRepository` — overrides `GetAllAsync()` with `new` keyword (ordered by ReportedAt desc)
-- `QueueRepository` — overrides `Delete()` with `new` keyword
-
-### UnitOfWork (`OpdManager.Infrastructure/UnitOfWork/UnitOfWork.cs`)
-- Receives all repositories via DI constructor injection (NOT `new`-ing them)
-- Shares same `AppDbContext` instance across all repos (scoped lifetime)
-
 ### DbContext (`OpdManager.Infrastructure/Data/AppDbContext.cs`)
-- `AppDbContextFactory` also exists for EF CLI migrations (design-time only)
-- Connection string: `Data Source=opd.db`
-- `Appointment` entity: `Ignore(a => a.TimeSlot)` — uses TimeSlotTicks instead
-
-### Services (`OpdManager.Infrastructure/Services/`)
-- `ReportService` — QuestPDF for PDF, ClosedXML for Excel, opens file after export
+- Extends `IdentityDbContext<ApplicationUser, IdentityRole, string>`
+- SQL Server provider (`UseSqlServer`)
+- TimeSpan maps natively to `time(7)` (no ticks workaround needed)
+- `AppDbContextFactory` provided for EF CLI design-time migrations
 
 ---
 
-## Presentation Layer
+## API Layer (`OpdManager.Api`)
 
-### DI Registration (`App.xaml.cs`)
-```
-DbContext          → AddDbContext (Scoped)
-Repositories       → AddScoped (all 5)
-UnitOfWork         → AddScoped
-Services           → AddScoped (all 6 including ReportService)
-ViewModels         → AddScoped (most), AddTransient (dialog VMs)
-MainViewModel      → Manual factory (needs IServiceProvider injected)
-MainWindow         → AddTransient
-```
+### Controllers & Auth
+- **JWT Auth**: `AuthController` provides Login and Refresh Token. Registration is disabled for anonymous users (only Admin can create users via `UsersController`).
+- **Roles**: "Admin" and "Staff". 
+  - Admin: manages Users, Doctors, Settings. 
+  - Staff: standard day-to-day operations.
 
-**Transient ViewModels** (fresh instance per dialog open):
-- `AddEditDoctorViewModel`
-- `AddEditAppointmentViewModel`
-- `AddEditIssueViewModel`
-- `CreatePatientViewModel`
-- `PatientHistoryViewModel`
+### Key API Endpoints
+- `/api/auth/*` — Login, Refresh, Me
+- `/api/users/*` — User CRUD (Admin)
+- `/api/doctors/*` — Doctor CRUD + Schedule management (Admin)
+- `/api/patients/*` — Patient CRUD (Any)
+- `/api/appointments/*` — Book, Update, Cancel, Search (Any)
+- `/api/queue/*` — Check-in, Update Status (Any)
+- `/api/dashboard` — Live stats (Any)
+- `/api/reports/*` — PDF/Excel downloads
+- `/api/settings/*` — App configuration (Admin)
 
-### Navigation Pattern
-- `MainViewModel` owns `CurrentView` (BaseViewModel) + `ActiveNav` (string)
-- `DataTemplate` in `MainWindow.xaml` maps ViewModel type → View
-- All dialog subscriptions (`OpenDoctorDialog`, `OpenAppointmentDialog`, etc.) are wired in `MainViewModel` constructor — **never in the View** (prevents duplicate event handler bug)
-- Dialog events use named local functions for proper `+=` / `-=` cleanup
-
-### MVVM Core (`Presentation/Core/`)
-- `BaseViewModel` — INotifyPropertyChanged, SetProperty, OnPropertyChanged
-- `RelayCommand` — ICommand with RaiseCanExecuteChanged()
-- `RelayCommand<T>` — generic version for typed parameters
-
-### Converters (`Presentation/Converters/`)
-- `TimeSpanTo12HourConverter` — `h:mm tt` format (no leading zero)
-- `StatusToColorConverter` — AppointmentStatus → SolidColorBrush
-- `StatusToTextConverter` — AppointmentStatus → "● Scheduled" etc.
-- `QueueStatusToColorConverter` — QueueStatus → SolidColorBrush
-- `QueueStatusToTextConverter` — QueueStatus → "⏳ Waiting" etc.
-
-### Helpers (`Presentation/Helpers/`)
-- `PrintHelper` — WPF print using FixedDocument + Grid rows (NOT FlowDocument Table — .NET 10 doesn't support TableColumnGroup)
+### SignalR Hubs
+- `/hubs/queue` — Pushes `QueueUpdated` event when status changes or check-ins happen.
+- `/hubs/dashboard` — Pushes `DashboardUpdated` event alongside queue changes.
 
 ---
 
-## Screens / Views
+## React Frontend (`opdmanager-client`)
 
-| Screen | ViewModel | Key Features |
+- **State Management**: TanStack Query (server state), Zustand (client auth state).
+- **HTTP Client**: Axios with JWT interceptor for auto-attaching tokens and refreshing on 401.
+- **Styling**: Premium dark theme via `index.css`, glassmorphism, responsive grid layouts.
+
+### Screens / Pages
+| Route | Description | Role |
 |---|---|---|
-| Dashboard | DashboardViewModel | 7 stat cards, auto-refresh via IQueueService |
-| Doctors | DoctorViewModel | DataGrid, Add/Edit dialog, Toggle Active, Delete (blocks if has appointments) |
-| Patients | PatientViewModel | Search (Enter key), pagination 20/page, View History (double-click), New Patient |
-| Appointments | AppointmentViewModel | Date mode + Search mode, pagination, doctor filter, Check In, Cancel, Delete |
-| Queue Monitor | QueueMonitorViewModel | 3-column Kanban (Waiting/InProgress/Done), auto-refresh timer 30s, Call Next/Done/Skip |
-| Issues | IssueViewModel | Search + category + status filter, pagination, Mark In Review / Close / Delete |
-| Reports | ReportsViewModel | Date range picker, PDF/Excel/Print buttons |
+| `/login` | JWT Login form | Anonymous |
+| `/` | Dashboard with stat cards & Recharts performance graph | Authenticated |
+| `/queue` | Live Queue Kanban board (SignalR) | Authenticated |
+| `/appointments` | Appointment management & check-in | Authenticated |
+| `/patients` | Patient directory | Authenticated |
+| `/doctors` | Doctor CRUD + 7-day schedule editor | Admin |
+| `/issues` | Issue tracking | Authenticated |
+| `/reports` | PDF/Excel exports | Authenticated |
+| `/users` | System user management | Admin |
+| `/settings` | Global application configuration | Admin |
 
 ---
 
-## Key Business Rules
+## Key Business Rules & New Features
 
-### Appointment Booking
-- One slot per doctor per time — `IsSlotAvailableAsync` checks by `TimeSlotTicks`
-- Edit excludes current appointment from slot check (`excludeAppointmentId`)
-- Patient must be selected from search results — typing alone doesn't set `SelectedPatient`
+### Day-based Appointments & Daily Cap
+- Appointments are now **day-based**, not tied to a specific time slot.
+- `DoctorSchedule` defines working hours per weekday.
+- **Daily Cap Feature**: If enabled in Settings, the system calculates a doctor's max capacity based on `(WorkingMinutes / AverageExaminationMinutes)`. `BookAsync` validates against this cap before allowing a new appointment.
 
-### Queue / Status Sync
-```
-Check In     → QueueEntry created, Status = Waiting    | Appointment stays Scheduled
-Call Next    → QueueStatus = InProgress                | Appointment = InProgress
-Mark Done    → QueueStatus = Done                      | Appointment = Completed
-Skip         → QueueStatus = Skipped                   | Appointment = NoShow
-Cancel Appt  → AppointmentStatus = Cancelled           | QueueEntry.Status = Skipped
-```
+### Real-time Sync
+- Old WPF used a 30s timer. The React app connects via SignalR. When an appointment is checked in, all clients instantly update the Queue Monitor and Dashboard.
 
-### Issue Workflow
-```
-Log Issue → Open
-Open → Mark In Review → InReview
-InReview → Close (enter resolution) → Closed
-Open → Close (enter resolution) → Closed (can skip review)
-```
-
-### Doctor Delete Protection
-- Cannot delete a doctor who has any appointments (any date)
-- Throws `InvalidOperationException` with friendly message
-- Caught in `DoctorViewModel.DeleteAsync` and shown as MessageBox
+### Doctor Performance Tracking
+- `QueueEntry` tracks `CheckInTime`, `StartTime`, and `EndTime`.
+- `ExaminationMinutes` is calculated for completed visits.
+- `Dashboard` and `Reports` expose this data (avg & total examination times).
 
 ---
 
-## Known Patterns & Decisions
+## Migrations & Database
 
-### EF Tracking Conflict Fix
-Never create a new entity with an existing Id and call Update — always fetch the tracked entity first, then modify its properties.
+1. Ensure SQL Server (or LocalDB) is running.
+2. Connection string is configured in `OpdManager.Api/appsettings.json`:
+   `Server=MSTERX\MSTERX;Database=OPD;User Id=sa;Password=MsterXx123;TrustServerCertificate=True;`
 
-### StackOverflow Fix (Doctor filter ComboBox)
-`_doctorsLoaded` flag prevents reloading doctors collection on every filter change, which would reset ComboBox selection and re-trigger the setter infinitely.
-
-### Dialog Reopening Bug Fix
-Dialog events (`OpenDoctorDialog` etc.) are subscribed ONCE in `MainViewModel` constructor. WPF `DataTemplate` creates new View instances on every navigation — subscribing in the View causes accumulation.
-
-### Pagination
-- Page size: 20 rows everywhere
-- `PagedResult<T>` — Items, TotalCount, Page, PageSize, TotalPages, HasNext, HasPrevious
-- Appointment search uses `SearchPagedAsync` — all filters applied at DB level (SQL WHERE + SKIP + TAKE)
-- Patient pagination is client-side (fetch all, paginate in memory) — acceptable since patients grow slowly
-
-### Print
-Uses `FixedDocument` + `Grid` rows — NOT `FlowDocument` + `Table`. Reason: `TableColumnGroup` does not exist in .NET 10 WPF (`System.Windows.Documents` namespace missing it).
-
----
-
-## Migrations History
-1. `InitialCreate` — all tables
-2. `fixTimeSlot` / `AddTimeSlotTicks` — replaced TimeSpan column with long (ticks)
-
-Run migrations:
+**Generate/Apply Migrations:**
 ```powershell
-cd "E:\Projects\C Sharp\OPD System\OpdManager.Infrastructure"
-dotnet ef migrations add <Name> --startup-project ../OpdManager.Presentation/OpdManager.Presentation.csproj
-dotnet ef database update --startup-project ../OpdManager.Presentation/OpdManager.Presentation.csproj
+cd "E:\Projects\C Sharp\OPD System"
+dotnet ef migrations add <Name> --project OpdManager.Infrastructure --startup-project OpdManager.Api
+dotnet ef database update --project OpdManager.Infrastructure --startup-project OpdManager.Api
 ```
 
-`db.Database.Migrate()` runs automatically on app startup — no need for `update-database` in production.
-
----
-
-## NuGet Packages
-
-### OpdManager.Infrastructure
-- `Microsoft.EntityFrameworkCore` 10.0.x
-- `Microsoft.EntityFrameworkCore.Sqlite` 10.0.x
-- `Microsoft.EntityFrameworkCore.Design` 10.0.x (PrivateAssets=all)
-- `Microsoft.EntityFrameworkCore.Tools` 10.0.x (PrivateAssets=all)
-- `QuestPDF` — PDF generation
-- `ClosedXML` — Excel generation
-
-### OpdManager.Presentation
-- `Microsoft.Extensions.DependencyInjection` 10.0.x
-- `Microsoft.EntityFrameworkCore.Design` 10.0.x
-- `Microsoft.VisualBasic` — InputBox for issue resolution dialog
-
----
-
-## What Has Been Completed
-
-- ✅ Phase 1 — Solution structure, Domain entities, EF Core + SQLite, Repositories, UoW, DI
-- ✅ Phase 2 — Dashboard screen with 7 live stat cards
-- ✅ Phase 3 — Doctors CRUD (Add/Edit/Delete/Toggle Active, working hours, 12-hour time display)
-- ✅ Phase 4 — Appointments (full CRUD, slot validation, Check In, queue sync, status badges)
-- ✅ Phase 5 — Queue Monitor (Kanban 3-col, auto-refresh), Issues (full workflow), Reports (PDF/Excel/Print)
-- ✅ Pagination — 20 rows/page on Appointments, Patients, Issues with DB-level queries
-- ✅ Search — Patient name search (Enter key), appointment cross-date search, issue title/category/status filter
-- ✅ Patient screen — list, search, history popup, Create Patient dialog
-- ✅ Issue workflow — Open → In Review → Closed with resolution note
-- ✅ Doctor delete protection — blocks if doctor has appointments
-- ✅ Phase 6 — COMPLETE
-  - Global exception handler (UI + background + async)
-  - File logger (logs/opd-{date}.log)
-  - Backup & Restore (SQLite file copy with SaveFileDialog/OpenFileDialog)
-  - Dashboard auto-refresh every 60s with start/stop on nav
-  - Waiting alert banner (configurable threshold from settings)
-  - App Settings (hospital name, alert threshold, backup folder) saved to settings.json
-  - Settings dialog accessible from sidebar
-  - Hospital name shown in sidebar + PDF report header
-  - Exit confirmation dialog
-  - BackupService uses AppSettings.BackupFolder if set
-
----
-
-## What Still Needs To Be Done
-
-- [ ] UI/UX design polish — use Impeccable skill for full visual redesign
-- [ ] Patient pagination move to DB-level (currently client-side)
-- [ ] Input validation — phone format, date range checks
-- [ ] Doctor search — already has SearchText live filter, works fine
-
----
-
-## File Locations Quick Reference
-
-```
-Domain entities:          OpdManager.Domain\Entities\
-Domain enums:             OpdManager.Domain\Enums\
-Repository interfaces:    OpdManager.Application\Interfaces\Repositories\
-IUnitOfWork:              OpdManager.Application\Interfaces\IUnitOfWork.cs
-Service interfaces:       OpdManager.Application\Services\Interfaces\
-Service implementations:  OpdManager.Application\Services\Implementation\
-DTOs:                     OpdManager.Application\DTOs\
-DbContext + Factory:      OpdManager.Infrastructure\Data\
-Repository impls:         OpdManager.Infrastructure\Repositories\
-UnitOfWork impl:          OpdManager.Infrastructure\UnitOfWork\
-ReportService:            OpdManager.Infrastructure\Services\
-App entry + DI:           OpdManager.Presentation\App.xaml.cs
-Main window + nav:        OpdManager.Presentation\MainWindow.xaml
-ViewModels:               OpdManager.Presentation\ViewModels\
-Views:                    OpdManager.Presentation\Views\
-Converters:               OpdManager.Presentation\Converters\
-Helpers:                  OpdManager.Presentation\Helpers\
-MVVM core:                OpdManager.Presentation\Core\
-```
+*Note: On first run, EF `MigrateAsync()` applies pending migrations and the API seeds the "Admin" & "Staff" roles plus the default `admin@opd.local` user.*
 
 ---
 
 ## How To Run
 
+### 1. Run the Backend API
 ```powershell
 cd "E:\Projects\C Sharp\OPD System"
-dotnet build
-dotnet run --project OpdManager.Presentation
+dotnet run --project OpdManager.Api
 ```
+- Starts on `http://localhost:5073`
+- Swagger UI available at `http://localhost:5073/swagger`
 
-Or open `OpdManager.slnx` in Visual Studio 2022 and press F5.
+### 2. Run the React Frontend
+```powershell
+cd "E:\Projects\C Sharp\OPD System\opdmanager-client"
+npm run dev
+```
+- Starts on `http://localhost:5173`
+- Default login: `admin@opd.local` / `Admin@123`
 
-DB file (`opd.db`) is created automatically in the working directory on first run.
+---
+
+## What Has Been Completed (Migration)
+- ✅ **Domain/Application Changes**: Removed `TimeSlotTicks` workaround. Added `DoctorSchedule` entity. Added `ExaminationMinutes` and daily cap logic.
+- ✅ **Infrastructure Swap**: Migrated from SQLite to SQL Server. Replaced local JSON settings with DB-backed `AppSetting`. Added ASP.NET Core Identity. Removed WPF-specific BackupService and print logic.
+- ✅ **API Layer**: Created `OpdManager.Api` with full JWT auth, controllers, and SignalR hubs.
+- ✅ **Frontend**: Bootstrapped React SPA with Vite. Configured premium dark mode aesthetics. Implemented routing, auth guards, API client, and layout components. Created placeholder/functional pages for all features.
+
+## What Still Needs To Be Done
+- [ ] Flesh out the UI components inside the React pages (e.g., forms, modals, tables for Doctors, Users, Settings).
+- [ ] Implement pagination controls on the React table components.
