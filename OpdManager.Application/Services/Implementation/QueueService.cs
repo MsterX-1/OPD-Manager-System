@@ -20,10 +20,11 @@ namespace OpdManager.Application.Services.Implementations
                 QueueNumber = q.QueueNumber,
                 PatientName = q.Appointment.Patient.FullName,
                 DoctorName = q.Appointment.Doctor.Name,
+                DoctorSpecialty = q.Appointment.Doctor.Specialty,
                 Status = q.Status,
                 CheckInTime = q.CheckInTime,
-                // Wait time = time from check-in until called (StartTime)
-                // If not called yet = time waiting so far
+                StartTime = q.StartTime,
+                EndTime = q.EndTime,
                 WaitingMinutes = q.StartTime.HasValue
                     ? (int)(q.StartTime.Value - q.CheckInTime).TotalMinutes
                     : (int)(DateTime.Now - q.CheckInTime).TotalMinutes

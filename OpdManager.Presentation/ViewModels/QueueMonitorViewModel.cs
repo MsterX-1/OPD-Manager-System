@@ -4,21 +4,38 @@ using OpdManager.Domain.Enums;
 using OpdManager.Presentation.Core;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace OpdManager.Presentation.ViewModels;
 
 public class QueueMonitorViewModel : BaseViewModel
 {
     private readonly IQueueService _queueService;
+    private readonly DispatcherTimer _refreshTimer;
 
-    private ObservableCollection<QueueEntryDto> _queue = new();
+    private ObservableCollection<QueueEntryDto> _waitingQueue = new();
+    private ObservableCollection<QueueEntryDto> _inProgressQueue = new();
+    private ObservableCollection<QueueEntryDto> _completedQueue = new();
     private QueueEntryDto? _selectedEntry;
     private bool _isLoading;
+    private string _lastUpdated = string.Empty;
 
-    public ObservableCollection<QueueEntryDto> Queue
+    public ObservableCollection<QueueEntryDto> WaitingQueue
     {
-        get => _queue;
-        set => SetProperty(ref _queue, value);
+        get => _waitingQueue;
+        set => SetProperty(ref _waitingQueue, value);
+    }
+
+    public ObservableCollection<QueueEntryDto> InProgressQueue
+    {
+        get => _inProgressQueue;
+        set => SetProperty(ref _inProgressQueue, value);
+    }
+
+    public ObservableCollection<QueueEntryDto> CompletedQueue
+    {
+        get => _completedQueue;
+        set => SetProperty(ref _completedQueue, value);
     }
 
     public QueueEntryDto? SelectedEntry
@@ -29,7 +46,7 @@ public class QueueMonitorViewModel : BaseViewModel
             SetProperty(ref _selectedEntry, value);
             CallNextCommand.RaiseCanExecuteChanged();
             MarkDoneCommand.RaiseCanExecuteChanged();
-            MarkNoShowCommand.RaiseCanExecuteChanged();
+            SkipCommand.RaiseCanExecuteChanged();
         }
     }
 
@@ -39,31 +56,21 @@ public class QueueMonitorViewModel : BaseViewModel
         set => SetProperty(ref _isLoading, value);
     }
 
-    // Summary stats
-    private int _waitingCount;
-    private int _inProgressCount;
-    private int _doneCount;
+    public string LastUpdated
+    {
+        get => _lastUpdated;
+        set => SetProperty(ref _lastUpdated, value);
+    }
 
-    public int WaitingCount
-    {
-        get => _waitingCount;
-        set => SetProperty(ref _waitingCount, value);
-    }
-    public int InProgressCount
-    {
-        get => _inProgressCount;
-        set => SetProperty(ref _inProgressCount, value);
-    }
-    public int DoneCount
-    {
-        get => _doneCount;
-        set => SetProperty(ref _doneCount, value);
-    }
+    // Summary stats
+    public int TotalWaiting => WaitingQueue.Count;
+    public int TotalInProgress => InProgressQueue.Count;
+    public int TotalCompleted => CompletedQueue.Count;
 
     public RelayCommand RefreshCommand { get; }
     public RelayCommand CallNextCommand { get; }
     public RelayCommand MarkDoneCommand { get; }
-    public RelayCommand MarkNoShowCommand { get; }
+    public RelayCommand SkipCommand { get; }
 
     public QueueMonitorViewModel(IQueueService queueService)
     {
@@ -73,18 +80,23 @@ public class QueueMonitorViewModel : BaseViewModel
 
         CallNextCommand = new RelayCommand(
             async () => await UpdateStatusAsync(QueueStatus.InProgress),
-            () => SelectedEntry != null &&
-                  SelectedEntry.Status == QueueStatus.Waiting);
+            () => SelectedEntry?.Status == QueueStatus.Waiting);
 
         MarkDoneCommand = new RelayCommand(
             async () => await UpdateStatusAsync(QueueStatus.Done),
-            () => SelectedEntry != null &&
-                  SelectedEntry.Status == QueueStatus.InProgress);
+            () => SelectedEntry?.Status == QueueStatus.InProgress);
 
-        MarkNoShowCommand = new RelayCommand(
-            async () => await UpdateStatusAsync(QueueStatus.Skipped),
-            () => SelectedEntry != null &&
-                  SelectedEntry.Status == QueueStatus.Waiting);
+        SkipCommand = new RelayCommand(
+            async () => await SkipAsync(),
+            () => SelectedEntry?.Status == QueueStatus.Waiting);
+
+        // Auto-refresh every 30 seconds
+        _refreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(30)
+        };
+        _refreshTimer.Tick += async (s, e) => await LoadAsync();
+        _refreshTimer.Start();
     }
 
     public async Task LoadAsync()
@@ -92,13 +104,21 @@ public class QueueMonitorViewModel : BaseViewModel
         IsLoading = true;
         try
         {
-            var queue = await _queueService.GetTodayQueueAsync();
-            Queue = new ObservableCollection<QueueEntryDto>(queue);
+            var queue = (await _queueService.GetTodayQueueAsync()).ToList();
 
-            // Update summary counts
-            WaitingCount = Queue.Count(q => q.Status == QueueStatus.Waiting);
-            InProgressCount = Queue.Count(q => q.Status == QueueStatus.InProgress);
-            DoneCount = Queue.Count(q => q.Status == QueueStatus.Done);
+            WaitingQueue = new ObservableCollection<QueueEntryDto>(
+                queue.Where(q => q.Status == QueueStatus.Waiting));
+            InProgressQueue = new ObservableCollection<QueueEntryDto>(
+                queue.Where(q => q.Status == QueueStatus.InProgress));
+            CompletedQueue = new ObservableCollection<QueueEntryDto>(
+                queue.Where(q => q.Status == QueueStatus.Done));
+
+            // Notify summary stats changed
+            OnPropertyChanged(nameof(TotalWaiting));
+            OnPropertyChanged(nameof(TotalInProgress));
+            OnPropertyChanged(nameof(TotalCompleted));
+
+            LastUpdated = $"Last updated: {DateTime.Now:h:mm:ss tt}";
         }
         finally { IsLoading = false; }
     }
@@ -107,31 +127,38 @@ public class QueueMonitorViewModel : BaseViewModel
     {
         if (SelectedEntry is null) return;
 
-        // Capture before reload clears selection
-        var entryId = SelectedEntry.Id;
+        var id = SelectedEntry.Id;
         var patientName = SelectedEntry.PatientName;
 
-        try
-        {
-            await _queueService.UpdateStatusAsync(entryId, status);
-            await LoadAsync();
+        await _queueService.UpdateStatusAsync(id, status);
+        await LoadAsync();
 
-            var message = status switch
-            {
-                QueueStatus.InProgress => $"Calling {patientName}...",
-                QueueStatus.Done => $"{patientName} consultation done.",
-                QueueStatus.Skipped => $"{patientName} marked as No Show.",
-                _ => string.Empty
-            };
+        var msg = status == QueueStatus.InProgress
+            ? $"Calling {patientName} — Queue #{SelectedEntry?.QueueNumber}"
+            : $"{patientName} consultation marked as done.";
 
-            if (!string.IsNullOrEmpty(message))
-                MessageBox.Show(message, "Queue Update",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Failed to update status: {ex.Message}",
-                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        MessageBox.Show(msg, "Queue Update",
+            MessageBoxButton.OK, MessageBoxImage.Information);
     }
+
+    private async Task SkipAsync()
+    {
+        if (SelectedEntry is null) return;
+
+        var result = MessageBox.Show(
+            $"Skip {SelectedEntry.PatientName}? This will mark them as No Show.",
+            "Confirm Skip",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        var id = SelectedEntry.Id;
+        await _queueService.UpdateStatusAsync(id, QueueStatus.Skipped);
+        await LoadAsync();
+    }
+
+    // Stop timer when navigating away
+    public void StopTimer() => _refreshTimer.Stop();
+    public void StartTimer() => _refreshTimer.Start();
 }

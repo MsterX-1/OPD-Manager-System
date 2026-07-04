@@ -14,22 +14,46 @@ public class AppointmentViewModel : BaseViewModel
     private readonly IDoctorService _doctorService;
     private readonly IQueueService _queueService;
 
-    // Sentinel object — Id = -1 means "All Doctors", never touches DB
+    private const int PageSize = 20;
+
     public static readonly Doctor AllDoctors = new() { Id = -1, Name = "All Doctors" };
 
+    // --- Collections ---
     private ObservableCollection<AppointmentDto> _appointments = new();
-    private AppointmentDto? _selectedAppointment;
-    private DateTime _selectedDate = DateTime.Today;
     private ObservableCollection<Doctor> _doctors = new();
+
+    // --- Selection ---
+    private AppointmentDto? _selectedAppointment;
     private Doctor _filterDoctor = AllDoctors;
+
+    // --- Filter mode ---
+    private bool _isSearchMode = false; // false = date filter, true = search mode
+    private DateTime _selectedDate = DateTime.Today;
+    private DateTime? _searchFromDate;
+    private DateTime? _searchToDate;
+    private string _searchText = string.Empty;
+
+    // --- Pagination ---
+    private int _currentPage = 1;
+    private int _totalPages = 1;
+    private int _totalCount = 0;
+
+    // --- State ---
     private bool _isLoading;
-    private bool _doctorsLoaded = false;
-    private bool _suppressFilterReload = false;
+    private bool _doctorsLoaded;
+    private bool _suppressFilterReload;
+    private string _statusText = string.Empty;
 
     public ObservableCollection<AppointmentDto> Appointments
     {
         get => _appointments;
         set => SetProperty(ref _appointments, value);
+    }
+
+    public ObservableCollection<Doctor> Doctors
+    {
+        get => _doctors;
+        set => SetProperty(ref _doctors, value);
     }
 
     public AppointmentDto? SelectedAppointment
@@ -38,29 +62,11 @@ public class AppointmentViewModel : BaseViewModel
         set
         {
             SetProperty(ref _selectedAppointment, value);
+            EditCommand.RaiseCanExecuteChanged();
             CancelCommand.RaiseCanExecuteChanged();
             CheckInCommand.RaiseCanExecuteChanged();
-            EditCommand.RaiseCanExecuteChanged();
             DeleteCommand.RaiseCanExecuteChanged();
         }
-    }
-
-    public DateTime SelectedDate
-    {
-        get => _selectedDate;
-        set
-        {
-            SetProperty(ref _selectedDate, value);
-            if (!_suppressFilterReload)
-                _ = LoadAsync();
-        }
-    }
-
-    // Non-nullable — always has a value (at least AllDoctors sentinel)
-    public ObservableCollection<Doctor> Doctors
-    {
-        get => _doctors;
-        set => SetProperty(ref _doctors, value);
     }
 
     public Doctor FilterDoctor
@@ -70,8 +76,61 @@ public class AppointmentViewModel : BaseViewModel
         {
             SetProperty(ref _filterDoctor, value ?? AllDoctors);
             if (!_suppressFilterReload)
-                _ = LoadAsync();
+                _ = LoadCurrentModeAsync();
         }
+    }
+
+    public bool IsSearchMode
+    {
+        get => _isSearchMode;
+        set => SetProperty(ref _isSearchMode, value);
+    }
+
+    public DateTime SelectedDate
+    {
+        get => _selectedDate;
+        set
+        {
+            SetProperty(ref _selectedDate, value);
+            if (!_suppressFilterReload && !_isSearchMode)
+                _ = LoadDateModeAsync(1);
+        }
+    }
+
+    public DateTime? SearchFromDate
+    {
+        get => _searchFromDate;
+        set => SetProperty(ref _searchFromDate, value);
+    }
+
+    public DateTime? SearchToDate
+    {
+        get => _searchToDate;
+        set => SetProperty(ref _searchToDate, value);
+    }
+
+    public string SearchText
+    {
+        get => _searchText;
+        set => SetProperty(ref _searchText, value);
+    }
+
+    public int CurrentPage
+    {
+        get => _currentPage;
+        set => SetProperty(ref _currentPage, value);
+    }
+
+    public int TotalPages
+    {
+        get => _totalPages;
+        set => SetProperty(ref _totalPages, value);
+    }
+
+    public int TotalCount
+    {
+        get => _totalCount;
+        set => SetProperty(ref _totalCount, value);
     }
 
     public bool IsLoading
@@ -80,13 +139,27 @@ public class AppointmentViewModel : BaseViewModel
         set => SetProperty(ref _isLoading, value);
     }
 
+    public string StatusText
+    {
+        get => _statusText;
+        set => SetProperty(ref _statusText, value);
+    }
+
+    public bool CanGoPrevious => CurrentPage > 1;
+    public bool CanGoNext => CurrentPage < TotalPages;
+
+    // Commands
     public RelayCommand AddCommand { get; }
     public RelayCommand EditCommand { get; }
     public RelayCommand CancelCommand { get; }
-    public RelayCommand RefreshCommand { get; }
-    public RelayCommand CheckInCommand { get; }
-    public RelayCommand TodayCommand { get; }
     public RelayCommand DeleteCommand { get; }
+    public RelayCommand CheckInCommand { get; }
+    public RelayCommand RefreshCommand { get; }
+    public RelayCommand TodayCommand { get; }
+    public RelayCommand SearchCommand { get; }
+    public RelayCommand ClearSearchCommand { get; }
+    public RelayCommand PreviousPageCommand { get; }
+    public RelayCommand NextPageCommand { get; }
 
     public event Action<AppointmentDto?>? OpenAppointmentDialog;
 
@@ -101,124 +174,181 @@ public class AppointmentViewModel : BaseViewModel
 
         AddCommand = new RelayCommand(() => OpenAppointmentDialog?.Invoke(null));
         EditCommand = new RelayCommand(() => OpenAppointmentDialog?.Invoke(SelectedAppointment),
-                                          () => SelectedAppointment != null &&
-                                                SelectedAppointment.Status == AppointmentStatus.Scheduled);
+                            () => SelectedAppointment?.Status == AppointmentStatus.Scheduled);
         CancelCommand = new RelayCommand(async () => await CancelAppointmentAsync(),
-                                          () => SelectedAppointment != null &&
-                                                SelectedAppointment.Status == AppointmentStatus.Scheduled);
+                            () => SelectedAppointment?.Status == AppointmentStatus.Scheduled);
         CheckInCommand = new RelayCommand(async () => await CheckInAsync(),
-                                          () => SelectedAppointment != null &&
-                                                SelectedAppointment.Status == AppointmentStatus.Scheduled &&
-                                                SelectedAppointment.QueueNumber == null);
-        RefreshCommand = new RelayCommand(async () => await LoadAsync());
-        TodayCommand = new RelayCommand(() => SelectedDate = DateTime.Today);
+                            () => SelectedAppointment?.Status == AppointmentStatus.Scheduled &&
+                                  SelectedAppointment?.QueueNumber == null);
         DeleteCommand = new RelayCommand(async () => await DeleteAppointmentAsync(),
-                                          () => SelectedAppointment != null);
+                            () => SelectedAppointment != null);
+        RefreshCommand = new RelayCommand(async () => await LoadCurrentModeAsync());
+        TodayCommand = new RelayCommand(() =>
+        {
+            IsSearchMode = false;
+            SelectedDate = DateTime.Today;
+        });
+
+        SearchCommand = new RelayCommand(async () =>
+        {
+            if (string.IsNullOrWhiteSpace(SearchText) &&
+                SearchFromDate == null && SearchToDate == null)
+            {
+                MessageBox.Show("Enter a patient name or date range to search.",
+                    "Search", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            IsSearchMode = true;
+            await LoadSearchModeAsync(1);
+        });
+
+        ClearSearchCommand = new RelayCommand(async () =>
+        {
+            SearchText = string.Empty;
+            SearchFromDate = null;
+            SearchToDate = null;
+            IsSearchMode = false;
+            await LoadDateModeAsync(1);
+        });
+
+        PreviousPageCommand = new RelayCommand(async () =>
+        {
+            if (CanGoPrevious)
+                await LoadCurrentModeAsync(CurrentPage - 1);
+        });
+
+        NextPageCommand = new RelayCommand(async () =>
+        {
+            if (CanGoNext)
+                await LoadCurrentModeAsync(CurrentPage + 1);
+        });
     }
 
     public void ResetDoctorsCache() => _doctorsLoaded = false;
 
-    public async Task LoadAsync()
+    // Entry point — called on nav and refresh
+    public async Task LoadAsync() => await LoadCurrentModeAsync(1);
+
+    private async Task LoadCurrentModeAsync(int page = 0)
+    {
+        var targetPage = page > 0 ? page : CurrentPage;
+        if (_isSearchMode)
+            await LoadSearchModeAsync(targetPage);
+        else
+            await LoadDateModeAsync(targetPage);
+    }
+
+    private async Task LoadDateModeAsync(int page)
     {
         IsLoading = true;
         try
         {
-            if (!_doctorsLoaded)
-            {
-                var doctors = await _doctorService.GetAllAsync();
-                var currentId = FilterDoctor.Id; // never null now
+            await EnsureDoctorsLoadedAsync();
 
-                _suppressFilterReload = true;
+            var doctorId = FilterDoctor.Id > 0 ? FilterDoctor.Id : 0;
+            var paged = await _appointmentService
+                .GetByDatePagedAsync(SelectedDate, page, PageSize, doctorId);
 
-                Doctors = new ObservableCollection<Doctor> { AllDoctors };
-                foreach (var d in doctors)
-                    Doctors.Add(d);
-
-                // Restore selection — fall back to AllDoctors if not found
-                FilterDoctor = currentId == -1
-                    ? AllDoctors
-                    : Doctors.FirstOrDefault(d => d.Id == currentId) ?? AllDoctors;
-
-                _suppressFilterReload = false;
-                _doctorsLoaded = true;
-            }
-
-            var appointments = await _appointmentService.GetByDateAsync(SelectedDate);
-
-            // Id == -1 means AllDoctors sentinel → show everything
-            if (FilterDoctor.Id != -1)
-                appointments = appointments
-                    .Where(a => a.DoctorName == FilterDoctor.Name);
-
-            Appointments = new ObservableCollection<AppointmentDto>(appointments);
+            ApplyPagedResult(paged, page);
+            StatusText = $"Showing appointments for {SelectedDate:MMM dd, yyyy}";
         }
-        finally
-        {
-            IsLoading = false;
-            _suppressFilterReload = false; // safety reset
-        }
+        finally { IsLoading = false; }
     }
 
-    private async Task DeleteAppointmentAsync()
+    private async Task LoadSearchModeAsync(int page)
     {
-        if (SelectedAppointment is null) return;
+        IsLoading = true;
+        try
+        {
+            await EnsureDoctorsLoadedAsync();
 
-        // Capture before LoadAsync clears selection
-        var patientName = SelectedAppointment.PatientName;
-        var appointmentId = SelectedAppointment.Id;
+            var doctorId = FilterDoctor.Id > 0 ? FilterDoctor.Id : 0;
+            var paged = await _appointmentService.SearchPagedAsync(
+                string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+                doctorId, SearchFromDate, SearchToDate, page, PageSize);
 
-        var result = MessageBox.Show(
-            $"Permanently delete appointment for {patientName}?\n\nThis cannot be undone.",
-            "Confirm Delete",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            ApplyPagedResult(paged, page);
+            StatusText = $"Search results for \"{SearchText}\"";
+        }
+        finally { IsLoading = false; }
+    }
 
-        if (result != MessageBoxResult.Yes) return;
+    private void ApplyPagedResult(Application.DTOs.PagedResult<AppointmentDto> paged, int page)
+    {
+        Appointments = new ObservableCollection<AppointmentDto>(paged.Items);
+        CurrentPage = page;
+        TotalPages = paged.TotalPages == 0 ? 1 : paged.TotalPages;
+        TotalCount = paged.TotalCount;
 
-        await _appointmentService.DeleteAsync(appointmentId);
-        await LoadAsync();
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+    }
+
+    private async Task EnsureDoctorsLoadedAsync()
+    {
+        if (_doctorsLoaded) return;
+
+        var doctors = await _doctorService.GetAllAsync();
+        var currentId = FilterDoctor.Id;
+
+        _suppressFilterReload = true;
+        Doctors = new ObservableCollection<Doctor> { AllDoctors };
+        foreach (var d in doctors) Doctors.Add(d);
+
+        FilterDoctor = currentId == -1
+            ? AllDoctors
+            : Doctors.FirstOrDefault(d => d.Id == currentId) ?? AllDoctors;
+
+        _suppressFilterReload = false;
+        _doctorsLoaded = true;
     }
 
     private async Task CancelAppointmentAsync()
     {
         if (SelectedAppointment is null) return;
+        var name = SelectedAppointment.PatientName;
+        var id = SelectedAppointment.Id;
 
-        // Capture before LoadAsync clears selection
-        var patientName = SelectedAppointment.PatientName;
-        var appointmentId = SelectedAppointment.Id;
-
-        var result = MessageBox.Show(
-            $"Cancel appointment for {patientName}?",
-            "Confirm Cancel",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
+        var result = MessageBox.Show($"Cancel appointment for {name}?",
+            "Confirm Cancel", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (result != MessageBoxResult.Yes) return;
 
-        await _appointmentService.CancelAsync(appointmentId);
-        await LoadAsync();
+        await _appointmentService.CancelAsync(id);
+        await LoadCurrentModeAsync();
+    }
+
+    private async Task DeleteAppointmentAsync()
+    {
+        if (SelectedAppointment is null) return;
+        var name = SelectedAppointment.PatientName;
+        var id = SelectedAppointment.Id;
+
+        var result = MessageBox.Show(
+            $"Permanently delete appointment for {name}?\n\nThis cannot be undone.",
+            "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
+        await _appointmentService.DeleteAsync(id);
+        await LoadCurrentModeAsync();
     }
 
     private async Task CheckInAsync()
     {
         if (SelectedAppointment is null) return;
-
-        // Capture before LoadAsync clears selection
-        var patientName = SelectedAppointment.PatientName;
-        var appointmentId = SelectedAppointment.Id;
+        var name = SelectedAppointment.PatientName;
+        var id = SelectedAppointment.Id;
 
         try
         {
-            await _queueService.CheckInAsync(appointmentId);
-            await LoadAsync();
-            MessageBox.Show(
-                $"{patientName} checked in successfully!",
+            await _queueService.CheckInAsync(id);
+            await LoadCurrentModeAsync();
+            MessageBox.Show($"{name} checked in successfully!",
                 "Check In", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Check-in failed: {ex.Message}", "Error",
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Check-in failed: {ex.Message}",
+                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

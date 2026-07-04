@@ -31,6 +31,6 @@ namespace OpdManager.Infrastructure.Repositories
             return todayEntries.Any() ? todayEntries.Max(q => q.QueueNumber) + 1 : 1;
         }
 
-        public void Delete(QueueEntry entry) => DbSet.Remove(entry); //override Delete to remove the entry from the DbSet
+        public new void Delete(QueueEntry entry) => DbSet.Remove(entry); //override Delete to remove the entry from the DbSet
     }
 }

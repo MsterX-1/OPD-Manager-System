@@ -2,6 +2,7 @@
 using OpdManager.Domain.Entities;
 using OpdManager.Presentation.Core;
 using System.Collections.ObjectModel;
+using System.Windows;
 
 namespace OpdManager.Presentation.ViewModels;
 
@@ -12,7 +13,7 @@ public class AddEditIssueViewModel : BaseViewModel
     private string _title = string.Empty;
     private string _description = string.Empty;
     private string _category = "Delay";
-    private string _dialogTitle = "New Issue";
+    private string _dialogTitle = "Log New Issue";
 
     public string Title
     {

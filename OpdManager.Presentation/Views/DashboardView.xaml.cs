@@ -1,4 +1,4 @@
-﻿using OpdManager.Presentation.ViewModels;
+using OpdManager.Presentation.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -14,6 +14,15 @@ public partial class DashboardView : UserControl
     private async void UserControl_Loaded(object sender, RoutedEventArgs e)
     {
         if (DataContext is DashboardViewModel vm)
+        {
+            vm.StartTimer();
             await vm.LoadAsync();
+        }
+    }
+
+    private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is DashboardViewModel vm)
+            vm.StopTimer();
     }
 }

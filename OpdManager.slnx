@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="CLAUDE.md" />
+  </Folder>
   <Project Path="OpdManager.Application/OpdManager.Application.csproj" />
   <Project Path="OpdManager.Domain/OpdManager.Domain.csproj" />
   <Project Path="OpdManager.Infrastructure/OpdManager.Infrastructure.csproj" />

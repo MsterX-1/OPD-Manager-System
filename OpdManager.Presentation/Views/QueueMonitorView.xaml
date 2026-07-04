@@ -1,46 +1,24 @@
 <UserControl x:Class="OpdManager.Presentation.Views.QueueMonitorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:domain="clr-namespace:OpdManager.Domain.Enums;assembly=OpdManager.Domain"
              xmlns:converters="clr-namespace:OpdManager.Presentation.Converters"
-             Loaded="UserControl_Loaded">
+             Loaded="UserControl_Loaded"
+             Unloaded="UserControl_Unloaded">
 
     <UserControl.Resources>
-        <converters:QueueStatusToColorConverter x:Key="QueueStatusToColorConverter"/>
-        <converters:QueueStatusToTextConverter x:Key="QueueStatusToTextConverter"/>
+        <converters:QueueStatusToColorConverter x:Key="QueueStatusToColor"/>
+        <converters:QueueStatusToTextConverter  x:Key="QueueStatusToText"/>
 
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Padding" Value="16,10"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="StatCard" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Padding" Value="16"/>
+        <Style x:Key="QueueCard" TargetType="Border">
+            <Setter Property="Background"   Value="White"/>
+            <Setter Property="CornerRadius" Value="9"/>
+            <Setter Property="Padding"      Value="14,12"/>
+            <Setter Property="Margin"       Value="0,0,0,8"/>
+            <Setter Property="Cursor"       Value="Hand"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="2"
-                                      Opacity="0.08" Color="#000000"/>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="1"
+                                      Opacity="0.055" Color="#1A2530"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -57,49 +35,42 @@
         <!-- Header -->
         <DockPanel Grid.Row="0" Margin="0,0,0,20">
             <StackPanel DockPanel.Dock="Left">
-                <TextBlock Text="Queue Monitor"
-                           FontSize="24" FontWeight="Bold" Foreground="#1C2833"/>
-                <TextBlock Text="Live patient queue — call, complete, or mark no-show"
-                           FontSize="12" Foreground="#90A4AE" Margin="0,4,0,0"/>
+                <TextBlock Text="Queue Monitor" Style="{StaticResource PageTitle}"/>
+                <TextBlock Text="{Binding LastUpdated}" Style="{StaticResource PageSubtitle}"/>
             </StackPanel>
-            <Button DockPanel.Dock="Right"
-                    Content="⟳  Refresh"
+            <Button DockPanel.Dock="Right" Content="⟳  Refresh"
                     Command="{Binding RefreshCommand}"
-                    Background="#1C2833" Foreground="White"
-                    Style="{StaticResource ActionButton}"
+                    Style="{StaticResource DarkButton}"
                     HorizontalAlignment="Right" VerticalAlignment="Center"/>
         </DockPanel>
 
         <!-- Summary cards -->
-        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,16">
-            <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,18">
+            <Border Style="{StaticResource Panel}" Margin="0,0,10,0" Padding="18,14">
                 <StackPanel>
-                    <TextBlock Text="⏳" FontSize="20"/>
-                    <TextBlock Text="{Binding WaitingCount}"
-                               FontSize="32" FontWeight="Bold"
-                               Foreground="#E65100" Margin="0,6,0,2"/>
-                    <TextBlock Text="Waiting"
-                               FontSize="12" Foreground="#78909C"/>
+                    <TextBlock Text="⏳  Waiting" Foreground="#5A6A75"
+                               FontSize="11" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TotalWaiting}"
+                               FontSize="34" FontWeight="Bold"
+                               Foreground="#B45309" Margin="0,4,0,0"/>
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource StatCard}" Margin="0,0,12,0">
+            <Border Style="{StaticResource Panel}" Margin="0,0,10,0" Padding="18,14">
                 <StackPanel>
-                    <TextBlock Text="🔄" FontSize="20"/>
-                    <TextBlock Text="{Binding InProgressCount}"
-                               FontSize="32" FontWeight="Bold"
-                               Foreground="#1565C0" Margin="0,6,0,2"/>
-                    <TextBlock Text="In Progress"
-                               FontSize="12" Foreground="#78909C"/>
+                    <TextBlock Text="🔄  In Progress" Foreground="#5A6A75"
+                               FontSize="11" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TotalInProgress}"
+                               FontSize="34" FontWeight="Bold"
+                               Foreground="#1A56A0" Margin="0,4,0,0"/>
                 </StackPanel>
             </Border>
-            <Border Style="{StaticResource StatCard}">
+            <Border Style="{StaticResource Panel}" Padding="18,14">
                 <StackPanel>
-                    <TextBlock Text="✅" FontSize="20"/>
-                    <TextBlock Text="{Binding DoneCount}"
-                               FontSize="32" FontWeight="Bold"
-                               Foreground="#2E7D32" Margin="0,6,0,2"/>
-                    <TextBlock Text="Done"
-                               FontSize="12" Foreground="#78909C"/>
+                    <TextBlock Text="✅  Completed" Foreground="#5A6A75"
+                               FontSize="11" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TotalCompleted}"
+                               FontSize="34" FontWeight="Bold"
+                               Foreground="#1D6B3A" Margin="0,4,0,0"/>
                 </StackPanel>
             </Border>
         </UniformGrid>
@@ -108,120 +79,167 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
             <Button Content="📢  Call Next"
                     Command="{Binding CallNextCommand}"
-                    Background="#1565C0" Foreground="White"
-                    Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0"/>
+                    Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"/>
             <Button Content="✅  Mark Done"
                     Command="{Binding MarkDoneCommand}"
-                    Background="#2E7D32" Foreground="White"
-                    Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0"/>
-            <Button Content="⚠️  No Show"
-                    Command="{Binding MarkNoShowCommand}"
-                    Background="#E65100" Foreground="White"
-                    Style="{StaticResource ActionButton}"/>
+                    Style="{StaticResource SuccessButton}" Margin="0,0,8,0"/>
+            <Button Content="⏭  Skip / No Show"
+                    Command="{Binding SkipCommand}"
+                    Style="{StaticResource GhostButton}"/>
         </StackPanel>
 
-        <!-- Queue DataGrid -->
-        <Border Grid.Row="3" Background="White" CornerRadius="12">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="12" ShadowDepth="2"
-                                  Opacity="0.08" Color="#000000"/>
-            </Border.Effect>
-            <DataGrid ItemsSource="{Binding Queue}"
-                      SelectedItem="{Binding SelectedEntry}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#F5F5F5"
-                      BorderThickness="0"
-                      RowHeight="52" FontSize="13"
-                      Background="White" RowBackground="White"
-                      AlternatingRowBackground="#FAFAFA"
-                      SelectionMode="Single"
-                      CanUserResizeRows="False"
-                      ColumnHeaderHeight="44">
+        <!-- 3-column Kanban -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="White"/>
-                        <Setter Property="Foreground" Value="#78909C"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="FontSize" Value="12"/>
-                        <Setter Property="Padding" Value="16,0"/>
-                        <Setter Property="BorderBrush" Value="#F0F0F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-
-                <DataGrid.CellStyle>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="16,0"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E3F2FD"/>
-                                <Setter Property="Foreground" Value="#1C2833"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.CellStyle>
-
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Status}"
-                                         Value="{x:Static domain:QueueStatus.InProgress}">
-                                <Setter Property="Background" Value="#FFF8E1"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}"
-                                         Value="{x:Static domain:QueueStatus.Done}">
-                                <Setter Property="Background" Value="#F1F8E9"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Status}"
-                                         Value="{x:Static domain:QueueStatus.Skipped}">
-                                <Setter Property="Background" Value="#FFEBEE"/>
-                                <Setter Property="Opacity" Value="0.6"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
-
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Queue #"
-                                        Binding="{Binding QueueNumber}"
-                                        Width="80"/>
-                    <DataGridTextColumn Header="Patient"
-                                        Binding="{Binding PatientName}"
-                                        Width="*"/>
-                    <DataGridTextColumn Header="Doctor"
-                                        Binding="{Binding DoctorName}"
-                                        Width="*"/>
-                    <DataGridTextColumn Header="Check-in"
-                                        Binding="{Binding CheckInTime, StringFormat=h:mm tt}"
-                                        Width="100"/>
-                    <DataGridTextColumn Header="Wait (min)"
-                                        Binding="{Binding WaitingMinutes}"
-                                        Width="90"/>
-                    <DataGridTemplateColumn Header="Status" Width="130">
-                        <DataGridTemplateColumn.CellTemplate>
+            <!-- Waiting -->
+            <DockPanel Grid.Column="0">
+                <Border DockPanel.Dock="Top" Background="#FEF3C7"
+                        CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                    <TextBlock Text="⏳  Waiting"
+                               Foreground="#B45309" FontWeight="Bold" FontSize="13"/>
+                </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding WaitingQueue}">
+                        <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="12" Padding="10,4"
-                                        HorizontalAlignment="Left" Margin="16,0"
-                                        Background="{Binding Status,
-                                                     Converter={StaticResource QueueStatusToColorConverter}}">
-                                    <TextBlock
-                                        Text="{Binding Status,
-                                               Converter={StaticResource QueueStatusToTextConverter}}"
-                                        FontSize="12" FontWeight="Medium"
-                                        Foreground="White"/>
+                                <Border Style="{StaticResource QueueCard}"
+                                        MouseLeftButtonUp="QueueCard_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#B45309"
+                                                CornerRadius="7" Width="38" Height="38"
+                                                Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding QueueNumber}"
+                                                       Foreground="White" FontWeight="Bold"
+                                                       FontSize="15"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding PatientName}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="#1A2530"/>
+                                            <TextBlock Text="{Binding DoctorName}"
+                                                       FontSize="11" Foreground="#5A6A75"/>
+                                            <TextBlock FontSize="11" Foreground="#94A3B0"
+                                                       Margin="0,2,0,0">
+                                                <Run Text="Wait: "/>
+                                                <Run Text="{Binding WaitingMinutes}"/>
+                                                <Run Text=" min"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+
+            <!-- In Progress -->
+            <DockPanel Grid.Column="2">
+                <Border DockPanel.Dock="Top" Background="#EBF2FA"
+                        CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                    <TextBlock Text="🔄  In Progress"
+                               Foreground="#1A56A0" FontWeight="Bold" FontSize="13"/>
+                </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding InProgressQueue}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource QueueCard}"
+                                        MouseLeftButtonUp="QueueCard_Click">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#1A56A0"
+                                                CornerRadius="7" Width="38" Height="38"
+                                                Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding QueueNumber}"
+                                                       Foreground="White" FontWeight="Bold"
+                                                       FontSize="15"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding PatientName}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="#1A2530"/>
+                                            <TextBlock Text="{Binding DoctorName}"
+                                                       FontSize="11" Foreground="#5A6A75"/>
+                                            <TextBlock FontSize="11" Foreground="#94A3B0"
+                                                       Margin="0,2,0,0">
+                                                <Run Text="Waited: "/>
+                                                <Run Text="{Binding WaitingMinutes}"/>
+                                                <Run Text=" min"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+
+            <!-- Completed -->
+            <DockPanel Grid.Column="4">
+                <Border DockPanel.Dock="Top" Background="#E6F4EC"
+                        CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                    <TextBlock Text="✅  Completed"
+                               Foreground="#1D6B3A" FontWeight="Bold" FontSize="13"/>
+                </Border>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding CompletedQueue}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource QueueCard}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="#1D6B3A"
+                                                CornerRadius="7" Width="38" Height="38"
+                                                Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding QueueNumber}"
+                                                       Foreground="White" FontWeight="Bold"
+                                                       FontSize="15"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding PatientName}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="#1A2530"/>
+                                            <TextBlock Text="{Binding DoctorName}"
+                                                       FontSize="11" Foreground="#5A6A75"/>
+                                            <TextBlock FontSize="11" Foreground="#94A3B0"
+                                                       Margin="0,2,0,0">
+                                                <Run Text="Total wait: "/>
+                                                <Run Text="{Binding WaitingMinutes}"/>
+                                                <Run Text=" min"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
     </Grid>
 </UserControl>

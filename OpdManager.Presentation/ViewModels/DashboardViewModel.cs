@@ -1,11 +1,14 @@
-﻿using OpdManager.Application.Services.Interfaces;
+using OpdManager.Application.Services.Interfaces;
 using OpdManager.Presentation.Core;
+using OpdManager.Presentation.Services;
+using System.Windows.Threading;
 
 namespace OpdManager.Presentation.ViewModels
 {
     public class DashboardViewModel : BaseViewModel
     {
-        private readonly IQueueService _queueService; 
+        private readonly IQueueService _queueService;
+        private readonly DispatcherTimer _refreshTimer;
 
         private int _totalPatientsToday;
         private int _waitingPatients;
@@ -16,6 +19,11 @@ namespace OpdManager.Presentation.ViewModels
         private int _openIssues;
         private bool _isLoading;
         private string _lastUpdated = string.Empty;
+        private bool _hasWaitingAlert;
+        private string _alertMessage = string.Empty;
+
+        // Alert threshold — patients waiting more than this many minutes
+        private const int AlertThresholdMinutes = 30;
 
         public int TotalPatientsToday
         {
@@ -62,13 +70,28 @@ namespace OpdManager.Presentation.ViewModels
             get => _lastUpdated;
             set => SetProperty(ref _lastUpdated, value);
         }
+        public bool HasWaitingAlert
+        {
+            get => _hasWaitingAlert;
+            set => SetProperty(ref _hasWaitingAlert, value);
+        }
+        public string AlertMessage
+        {
+            get => _alertMessage;
+            set => SetProperty(ref _alertMessage, value);
+        }
 
         public RelayCommand RefreshCommand { get; }
 
         public DashboardViewModel(IQueueService queueService)
         {
-            _queueService = queueService;
+            _queueService  = queueService;
             RefreshCommand = new RelayCommand(async () => await LoadAsync());
+
+            // Auto-refresh every 60 seconds
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+            _refreshTimer.Tick += async (s, e) => await LoadAsync();
+            _refreshTimer.Start();
         }
 
         public async Task LoadAsync()
@@ -76,22 +99,37 @@ namespace OpdManager.Presentation.ViewModels
             IsLoading = true;
             try
             {
-                // Use service which has correct business logic
                 var stats = await _queueService.GetDashboardStatsAsync();
 
-                TotalPatientsToday = stats.TotalPatientsToday;
-                WaitingPatients = stats.WaitingPatients;
-                InProgressPatients = stats.InProgressPatients;
-                CompletedPatients = stats.CompletedPatients;
+                TotalPatientsToday    = stats.TotalPatientsToday;
+                WaitingPatients       = stats.WaitingPatients;
+                InProgressPatients    = stats.InProgressPatients;
+                CompletedPatients     = stats.CompletedPatients;
                 AverageWaitingMinutes = stats.AverageWaitingMinutes;
-                ActiveDoctors = stats.ActiveDoctors;
-                OpenIssues = stats.OpenIssues;
-                LastUpdated = $"Last updated: {DateTime.Now:hh:mm tt}";
+                ActiveDoctors         = stats.ActiveDoctors;
+                OpenIssues            = stats.OpenIssues;
+                LastUpdated           = $"Last updated: {DateTime.Now:h:mm:ss tt}";
+
+                // Alert: average wait exceeds threshold from settings
+                var threshold = AppSettings.Current.WaitingAlertMinutes;
+                if (stats.AverageWaitingMinutes >= threshold && stats.WaitingPatients > 0)
+                {
+                    HasWaitingAlert = true;
+                    AlertMessage    = $"⚠ {stats.WaitingPatients} patient(s) waiting over {threshold} min — avg {stats.AverageWaitingMinutes:F0} min";
+                }
+                else
+                {
+                    HasWaitingAlert = false;
+                    AlertMessage    = string.Empty;
+                }
             }
             finally
             {
                 IsLoading = false;
             }
         }
+
+        public void StopTimer() => _refreshTimer.Stop();
+        public void StartTimer() => _refreshTimer.Start();
     }
 }

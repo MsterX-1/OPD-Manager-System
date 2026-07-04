@@ -11,8 +11,8 @@ public class QueueStatusToColorConverter : IValueConverter
     {
         return value is QueueStatus status ? status switch
         {
-            QueueStatus.Waiting => new SolidColorBrush(Color.FromRgb(230, 81, 0)),
-            QueueStatus.InProgress => new SolidColorBrush(Color.FromRgb(21, 101, 192)),
+            QueueStatus.Waiting => new SolidColorBrush(Color.FromRgb(21, 101, 192)),
+            QueueStatus.InProgress => new SolidColorBrush(Color.FromRgb(230, 81, 0)),
             QueueStatus.Done => new SolidColorBrush(Color.FromRgb(46, 125, 50)),
             QueueStatus.Skipped => new SolidColorBrush(Color.FromRgb(120, 144, 156)),
             _ => new SolidColorBrush(Colors.Gray)

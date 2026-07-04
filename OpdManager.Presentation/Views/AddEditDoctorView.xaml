@@ -3,96 +3,73 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:converters="clr-namespace:OpdManager.Presentation.Converters"
         Title="{Binding Title}"
-        Height="480" Width="440"
+        Height="500" Width="440"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="#F0F2F5">
+        Background="#F6F7F9">
 
     <Window.Resources>
         <converters:TimeSpanTo12HourConverter x:Key="TimeSpanTo12HourConverter"/>
-        <Style x:Key="FormLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
+        <Style x:Key="FL" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#546E7A"/>
-            <Setter Property="Margin" Value="0,0,0,6"/>
-        </Style>
-        <Style x:Key="FormInput" TargetType="TextBox">
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#37474F"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6">
-                            <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="FormCombo" TargetType="ComboBox">
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#5A6A75"/>
+            <Setter Property="Margin"     Value="0,0,0,5"/>
         </Style>
     </Window.Resources>
 
     <Border Margin="24">
         <StackPanel>
-            <!-- Name -->
-            <TextBlock Text="Full Name" Style="{StaticResource FormLabel}"/>
+
+            <TextBlock Text="{Binding Title}" FontSize="18"
+                       FontWeight="Bold" Foreground="#1A2530"
+                       Margin="0,0,0,20"/>
+
+            <TextBlock Text="Full Name *" Style="{StaticResource FL}"/>
             <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormInput}"
-                     Margin="0,0,0,16"/>
+                     Style="{StaticResource PlaceholderTextBox}"
+                     Tag="e.g. Dr. Ahmed Hassan"
+                     Margin="0,0,0,14"/>
 
-            <!-- Specialty -->
-            <TextBlock Text="Specialty" Style="{StaticResource FormLabel}"/>
+            <TextBlock Text="Specialty *" Style="{StaticResource FL}"/>
             <TextBox Text="{Binding Specialty, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormInput}"
-                     Margin="0,0,0,16"/>
+                     Style="{StaticResource PlaceholderTextBox}"
+                     Tag="e.g. General Medicine"
+                     Margin="0,0,0,14"/>
 
-            <!-- Phone -->
-            <TextBlock Text="Phone Number (optional)" Style="{StaticResource FormLabel}"/>
+            <TextBlock Text="Phone Number" Style="{StaticResource FL}"/>
             <TextBox Text="{Binding PhoneNumber, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormInput}"
-                     Margin="0,0,0,16"/>
+                     Style="{StaticResource PlaceholderTextBox}"
+                     Tag="optional"
+                     Margin="0,0,0,14"/>
 
-            <!-- Working Hours -->
-            <TextBlock Text="Working Hours" Style="{StaticResource FormLabel}"/>
-            <Grid Margin="0,0,0,16">
+            <TextBlock Text="Working Hours" Style="{StaticResource FL}"/>
+            <Grid Margin="0,0,0,14">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="28"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-
                 <ComboBox Grid.Column="0"
-          ItemsSource="{Binding TimeOptions}"
-          SelectedItem="{Binding StartTime}"
-          Style="{StaticResource FormCombo}">
+                          ItemsSource="{Binding TimeOptions}"
+                          SelectedItem="{Binding StartTime}"
+                          Padding="12,10" FontSize="13"
+                          BorderBrush="#E2E6EA">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Converter={StaticResource TimeSpanTo12HourConverter}}"/>
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-
                 <TextBlock Grid.Column="1" Text="→"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
-                           Foreground="#90A4AE"/>
-
+                           Foreground="#94A3B0"/>
                 <ComboBox Grid.Column="2"
                           ItemsSource="{Binding TimeOptions}"
                           SelectedItem="{Binding EndTime}"
-                          Style="{StaticResource FormCombo}">
+                          Padding="12,10" FontSize="13"
+                          BorderBrush="#E2E6EA">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Converter={StaticResource TimeSpanTo12HourConverter}}"/>
@@ -101,60 +78,28 @@
                 </ComboBox>
             </Grid>
 
-            <!-- Active toggle -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
                 <CheckBox IsChecked="{Binding IsActive}"
-                          VerticalAlignment="Center"
-                          Margin="0,0,8,0"/>
+                          VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBlock Text="Doctor is currently active"
-                           FontSize="13" Foreground="#546E7A"
+                           FontSize="13" Foreground="#5A6A75"
                            VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- Buttons -->
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="10"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0"
-                        Content="Cancel"
+                <Button Grid.Column="0" Content="Cancel"
                         Command="{Binding CancelCommand}"
-                        Background="#ECEFF1" Foreground="#546E7A"
-                        BorderThickness="0" Padding="0,12"
-                        Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-
-                <Button Grid.Column="2"
-                        Content="Save Doctor"
+                        Style="{StaticResource GhostButton}"
+                        Padding="0,11"/>
+                <Button Grid.Column="2" Content="Save Doctor"
                         Command="{Binding SaveCommand}"
-                        Background="#1C2833" Foreground="White"
-                        BorderThickness="0" Padding="0,12"
-                        Cursor="Hand">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Background" Value="#B0BEC5"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                        Style="{StaticResource DarkButton}"
+                        Padding="0,11"/>
             </Grid>
         </StackPanel>
     </Border>

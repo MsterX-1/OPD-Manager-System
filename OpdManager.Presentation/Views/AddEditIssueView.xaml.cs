@@ -3,9 +3,9 @@ using System.Windows;
 
 namespace OpdManager.Presentation.Views;
 
-public partial class AddIssueView : Window
+public partial class AddEditIssueView : Window
 {
-    public AddIssueView(AddEditIssueViewModel viewModel)
+    public AddEditIssueView(AddEditIssueViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;

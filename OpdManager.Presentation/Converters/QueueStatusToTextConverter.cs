@@ -10,11 +10,11 @@ public class QueueStatusToTextConverter : IValueConverter
     {
         return value is QueueStatus status ? status switch
         {
-            QueueStatus.Waiting => "● Waiting",
-            QueueStatus.InProgress => "● In Progress",
-            QueueStatus.Done => "● Done",
-            QueueStatus.Skipped => "● No Show",
-            _ => "● Unknown"
+            QueueStatus.Waiting => "⏳ Waiting",
+            QueueStatus.InProgress => "🔄 In Progress",
+            QueueStatus.Done => "✅ Done",
+            QueueStatus.Skipped => "⏭ Skipped",
+            _ => "Unknown"
         } : string.Empty;
     }
 

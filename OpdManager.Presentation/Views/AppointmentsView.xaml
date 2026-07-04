@@ -6,14 +6,15 @@
 
     <UserControl.Resources>
         <converters:TimeSpanTo12HourConverter x:Key="TimeSpanTo12HourConverter"/>
-        <converters:StatusToColorConverter x:Key="StatusToColorConverter"/>
-        <converters:StatusToTextConverter x:Key="StatusToTextConverter"/>
+        <converters:StatusToColorConverter    x:Key="StatusToColorConverter"/>
+        <converters:StatusToTextConverter     x:Key="StatusToTextConverter"/>
+        <BooleanToVisibilityConverter         x:Key="BoolToVis"/>
 
-        <Style x:Key="ActionButton" TargetType="Button">
-            <Setter Property="Padding" Value="14,8"/>
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Padding" Value="12,7"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -31,103 +32,238 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="PageBtn" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.3"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Header -->
             <RowDefinition Height="Auto"/>
+            <!-- Search bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Date filter bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Action buttons -->
             <RowDefinition Height="*"/>
+            <!-- DataGrid -->
+            <RowDefinition Height="Auto"/>
+            <!-- Pagination -->
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,20">
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <StackPanel DockPanel.Dock="Left">
-                <TextBlock Text="Appointments"
-                           FontSize="24" FontWeight="Bold" Foreground="#1C2833"/>
-                <TextBlock Text="Manage daily appointments and queue check-ins"
+                <TextBlock Text="Appointments" FontSize="24"
+                           FontWeight="Bold" Foreground="#1C2833"/>
+                <TextBlock Text="{Binding StatusText}"
                            FontSize="12" Foreground="#90A4AE" Margin="0,4,0,0"/>
             </StackPanel>
             <Button DockPanel.Dock="Right"
                     Content="＋  New Appointment"
                     Command="{Binding AddCommand}"
                     Background="#1C2833" Foreground="White"
-                    Style="{StaticResource ActionButton}"
+                    Style="{StaticResource ActionBtn}"
+                    Padding="16,10"
                     HorizontalAlignment="Right" VerticalAlignment="Center"/>
         </DockPanel>
 
-        <!-- Filters bar -->
-        <Grid Grid.Row="1" Margin="0,0,0,16">
+        <!-- Search Bar -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10"
+                BorderBrush="#E0E0E0" BorderThickness="1"
+                Padding="16,12" Margin="0,0,0,10">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="1"
+                                  Opacity="0.06" Color="#000000"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Patient name search -->
+                <Border Grid.Column="0" BorderBrush="#E8E8E8"
+                        BorderThickness="1" CornerRadius="6"
+                        Padding="10,8">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="🔍"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0" Foreground="#90A4AE"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 BorderThickness="0" Background="Transparent"
+                                 FontSize="13" Foreground="#37474F"
+                                 VerticalAlignment="Center">
+                            <TextBox.InputBindings>
+                                <!-- Search on Enter -->
+                                <KeyBinding Key="Return" Command="{Binding SearchCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </DockPanel>
+                </Border>
+
+                <!-- From date -->
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="From" FontSize="10"
+                               Foreground="#90A4AE" Margin="0,0,0,2"/>
+                    <DatePicker SelectedDate="{Binding SearchFromDate}"
+                                FontSize="12" BorderBrush="#E0E0E0" Width="130"/>
+                </StackPanel>
+
+                <!-- To date -->
+                <StackPanel Grid.Column="4">
+                    <TextBlock Text="To" FontSize="10"
+                               Foreground="#90A4AE" Margin="0,0,0,2"/>
+                    <DatePicker SelectedDate="{Binding SearchToDate}"
+                                FontSize="12" BorderBrush="#E0E0E0" Width="130"/>
+                </StackPanel>
+
+                <!-- Search button -->
+                <Button Grid.Column="6"
+                        Content="Search"
+                        Command="{Binding SearchCommand}"
+                        Background="#1565C0" Foreground="White"
+                        Style="{StaticResource ActionBtn}"
+                        Padding="16,8"/>
+
+                <!-- Clear -->
+                <Button Grid.Column="8"
+                        Content="✕ Clear"
+                        Command="{Binding ClearSearchCommand}"
+                        Background="#ECEFF1" Foreground="#546E7A"
+                        Style="{StaticResource ActionBtn}"
+                        Padding="12,8"/>
+            </Grid>
+        </Border>
+
+        <!-- Date filter + Doctor filter + action buttons -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="180"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Date picker -->
             <Border Grid.Column="0" Background="White" CornerRadius="8"
-                    BorderBrush="#E0E0E0" BorderThickness="1"
-                    Padding="12,6" Margin="0,0,8,0">
+                    BorderBrush="#E0E0E0" BorderThickness="1" Padding="10,6">
                 <DatePicker SelectedDate="{Binding SelectedDate}"
                             BorderThickness="0" Background="Transparent"
                             FontSize="13"/>
             </Border>
 
-            <!-- Today button -->
-            <Button Grid.Column="1"
-                    Content="Today"
+            <!-- Today -->
+            <Button Grid.Column="2" Content="Today"
                     Command="{Binding TodayCommand}"
                     Background="#E3F2FD" Foreground="#1565C0"
-                    Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0"/>
+                    Style="{StaticResource ActionBtn}"
+                    Padding="12,8"/>
 
             <!-- Doctor filter -->
-            <Border Grid.Column="2" Background="White" CornerRadius="8"
-                    BorderBrush="#E0E0E0" BorderThickness="1"
-                    Padding="8,4" Margin="0,0,8,0" MinWidth="160">
+            <Border Grid.Column="4" Background="White" CornerRadius="8"
+                    BorderBrush="#E0E0E0" BorderThickness="1" Padding="8,4">
                 <ComboBox ItemsSource="{Binding Doctors}"
                           SelectedItem="{Binding FilterDoctor}"
-                          DisplayMemberPath="Name"
                           BorderThickness="0" Background="Transparent"
-                          FontSize="13"/>
+                          FontSize="13">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding Name}"/>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </Border>
 
-            <!-- Action buttons -->
-            <Button Grid.Column="4"
-                    Content="✏️  Edit"
+            <!-- Edit -->
+            <Button Grid.Column="6" Content="✏️  Edit"
                     Command="{Binding EditCommand}"
                     Background="#1565C0" Foreground="White"
-                    Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0"/>
+                    Style="{StaticResource ActionBtn}"/>
 
-            <Button Grid.Column="5"
-                    Content="✅  Check In"
+            <!-- Check In -->
+            <Button Grid.Column="8" Content="✅  Check In"
                     Command="{Binding CheckInCommand}"
                     Background="#2E7D32" Foreground="White"
-                    Style="{StaticResource ActionButton}"
-                    Margin="0,0,8,0"/>
+                    Style="{StaticResource ActionBtn}"/>
 
-            <Button Grid.Column="6"
-                Content="❌  Cancel Appt"
-                Command="{Binding CancelCommand}"
-                Background="#E65100" Foreground="White"
-                Style="{StaticResource ActionButton}"
-                Margin="0,0,8,0"/>
+            <!-- Cancel Appt -->
+            <Button Grid.Column="10" Content="⛔  Cancel"
+                    Command="{Binding CancelCommand}"
+                    Background="#E65100" Foreground="White"
+                    Style="{StaticResource ActionBtn}"/>
 
-            <Button Grid.Column="7"
-                Content="🗑  Delete"
-                Command="{Binding DeleteCommand}"
-                Background="#C62828" Foreground="White"
-                Style="{StaticResource ActionButton}"/>
+            <!-- Delete -->
+            <Button Grid.Column="12" Content="🗑  Delete"
+                    Command="{Binding DeleteCommand}"
+                    Background="#C62828" Foreground="White"
+                    Style="{StaticResource ActionBtn}"/>
         </Grid>
 
+        <!-- Loading indicator -->
+        <Border Grid.Row="3"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                Background="#E3F2FD" CornerRadius="6"
+                Padding="12,6" Margin="0,0,0,8"
+                HorizontalAlignment="Left">
+            <TextBlock Text="⏳ Loading..."
+                       FontSize="12" Foreground="#1565C0"/>
+        </Border>
+
         <!-- DataGrid -->
-        <Border Grid.Row="2" Background="White" CornerRadius="12">
+        <Border Grid.Row="4" Background="White" CornerRadius="12">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" ShadowDepth="2"
                                   Opacity="0.08" Color="#000000"/>
@@ -139,20 +275,20 @@
                       GridLinesVisibility="Horizontal"
                       HorizontalGridLinesBrush="#F5F5F5"
                       BorderThickness="0"
-                      RowHeight="48" FontSize="13"
+                      RowHeight="46" FontSize="13"
                       Background="White" RowBackground="White"
                       AlternatingRowBackground="#FAFAFA"
                       SelectionMode="Single"
                       CanUserResizeRows="False"
-                      ColumnHeaderHeight="44">
+                      ColumnHeaderHeight="42">
 
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
                         <Setter Property="Background" Value="White"/>
                         <Setter Property="Foreground" Value="#78909C"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="FontSize" Value="12"/>
-                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Padding" Value="12,0"/>
                         <Setter Property="BorderBrush" Value="#F0F0F0"/>
                         <Setter Property="BorderThickness" Value="0,0,0,1"/>
                     </Style>
@@ -160,7 +296,7 @@
 
                 <DataGrid.CellStyle>
                     <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="16,0"/>
+                        <Setter Property="Padding" Value="12,0"/>
                         <Setter Property="BorderThickness" Value="0"/>
                         <Setter Property="VerticalAlignment" Value="Center"/>
                         <Style.Triggers>
@@ -173,13 +309,16 @@
                 </DataGrid.CellStyle>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Queue #"
+                    <DataGridTextColumn Header="Q#"
                                         Binding="{Binding QueueNumber}"
-                                        Width="80"/>
+                                        Width="45"/>
+                    <DataGridTextColumn Header="Date"
+                                        Binding="{Binding AppointmentDate, StringFormat='MMM dd'}"
+                                        Width="70"/>
                     <DataGridTextColumn Header="Time"
                                         Binding="{Binding TimeSlot,
                                                   Converter={StaticResource TimeSpanTo12HourConverter}}"
-                                        Width="100"/>
+                                        Width="90"/>
                     <DataGridTextColumn Header="Patient"
                                         Binding="{Binding PatientName}"
                                         Width="*"/>
@@ -188,22 +327,21 @@
                                         Width="*"/>
                     <DataGridTextColumn Header="Specialty"
                                         Binding="{Binding DoctorSpecialty}"
-                                        Width="120"/>
-                    <DataGridTextColumn Header="Wait (min)"
+                                        Width="110"/>
+                    <DataGridTextColumn Header="Wait"
                                         Binding="{Binding WaitingMinutes}"
-                                        Width="90"/>
-                    <!-- Status badge -->
-                    <DataGridTemplateColumn Header="Status" Width="130">
+                                        Width="55"/>
+                    <DataGridTemplateColumn Header="Status" Width="120">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="12" Padding="10,4"
-                                        HorizontalAlignment="Left" Margin="16,0"
+                                <Border CornerRadius="10" Padding="8,3"
+                                        HorizontalAlignment="Left" Margin="12,0"
                                         Background="{Binding Status,
                                                      Converter={StaticResource StatusToColorConverter}}">
                                     <TextBlock
                                         Text="{Binding Status,
                                                Converter={StaticResource StatusToTextConverter}}"
-                                        FontSize="12" FontWeight="Medium"
+                                        FontSize="11" FontWeight="Medium"
                                         Foreground="White"/>
                                 </Border>
                             </DataTemplate>
@@ -211,6 +349,49 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
+        </Border>
+
+        <!-- Pagination Bar -->
+        <Border Grid.Row="5" Padding="0,10,0,0">
+            <DockPanel>
+                <!-- Record count -->
+                <TextBlock DockPanel.Dock="Left"
+                           VerticalAlignment="Center"
+                           FontSize="12" Foreground="#78909C">
+                    <Run Text="Showing page "/>
+                    <Run Text="{Binding CurrentPage}"/>
+                    <Run Text=" of "/>
+                    <Run Text="{Binding TotalPages}"/>
+                    <Run Text=" ("/>
+                    <Run Text="{Binding TotalCount}"/>
+                    <Run Text=" records)"/>
+                </TextBlock>
+
+                <!-- Page buttons -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <Button Content="«"
+                            Command="{Binding PreviousPageCommand}"
+                            IsEnabled="{Binding CanGoPrevious}"
+                            Style="{StaticResource PageBtn}"
+                            Margin="0,0,4,0"/>
+                    <Border Background="White" CornerRadius="6"
+                            BorderBrush="#1565C0" BorderThickness="1"
+                            Width="32" Height="32"
+                            Margin="0,0,4,0">
+                        <TextBlock Text="{Binding CurrentPage}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="13" FontWeight="Bold"
+                                   Foreground="#1565C0"/>
+                    </Border>
+                    <Button Content="»"
+                            Command="{Binding NextPageCommand}"
+                            IsEnabled="{Binding CanGoNext}"
+                            Style="{StaticResource PageBtn}"/>
+                </StackPanel>
+            </DockPanel>
         </Border>
     </Grid>
 </UserControl>

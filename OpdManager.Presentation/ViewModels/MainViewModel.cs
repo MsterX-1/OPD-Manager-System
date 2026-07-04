@@ -15,9 +15,11 @@ namespace OpdManager.Presentation.ViewModels
         private readonly DashboardViewModel _dashboardViewModel;
         private readonly DoctorViewModel _doctorViewModel;
         private readonly AppointmentViewModel _appointmentViewModel;
-        private readonly IServiceProvider _serviceProvider;
         private readonly QueueMonitorViewModel _queueMonitorViewModel;
         private readonly IssueViewModel _issueViewModel;
+        private readonly ReportsViewModel _reportsViewModel;
+        private readonly PatientViewModel _patientViewModel;
+        private readonly IServiceProvider _serviceProvider;
 
         private BaseViewModel _currentView;
         public BaseViewModel CurrentView
@@ -38,6 +40,8 @@ namespace OpdManager.Presentation.ViewModels
         public RelayCommand NavAppointmentsCommand { get; }
         public RelayCommand NavQueueMonitorCommand { get; }
         public RelayCommand NavIssuesCommand { get; }
+        public RelayCommand NavReportsCommand { get; }
+        public RelayCommand NavPatientsCommand { get; }
 
         public MainViewModel(
             DashboardViewModel dashboardViewModel,
@@ -45,21 +49,27 @@ namespace OpdManager.Presentation.ViewModels
             AppointmentViewModel appointmentViewModel,
             QueueMonitorViewModel queueMonitorViewModel,
             IssueViewModel issueViewModel,
+            ReportsViewModel reportsViewModel,
+            PatientViewModel patientViewModel,
             IServiceProvider serviceProvider)
         {
             _dashboardViewModel = dashboardViewModel;
             _doctorViewModel = doctorViewModel;
             _appointmentViewModel = appointmentViewModel;
-            _serviceProvider = serviceProvider;
-            _currentView = _dashboardViewModel;
             _queueMonitorViewModel = queueMonitorViewModel;
             _issueViewModel = issueViewModel;
+            _reportsViewModel = reportsViewModel;
+            _serviceProvider = serviceProvider;
+            _currentView = _dashboardViewModel;
+            _patientViewModel = patientViewModel;
+
+            _patientViewModel.OpenPatientHistory += OpenPatientHistory;
+            _patientViewModel.OpenCreatePatient   += OpenCreatePatientDialog;
 
             _doctorViewModel.OpenDoctorDialog += OpenDoctorDialog;
             _appointmentViewModel.OpenAppointmentDialog += OpenAppointmentDialog;
             _issueViewModel.OpenIssueDialog += OpenIssueDialog;
 
-            // Auto-refresh dashboard every time you navigate to it
             NavDashboardCommand = new RelayCommand(async () =>
             {
                 CurrentView = _dashboardViewModel;
@@ -78,6 +88,7 @@ namespace OpdManager.Presentation.ViewModels
                 CurrentView = _appointmentViewModel;
                 ActiveNav = "Appointments";
             });
+
             NavQueueMonitorCommand = new RelayCommand(async () =>
             {
                 CurrentView = _queueMonitorViewModel;
@@ -92,13 +103,24 @@ namespace OpdManager.Presentation.ViewModels
                 await _issueViewModel.LoadAsync();
             });
 
-
+            NavReportsCommand = new RelayCommand(() =>
+            {
+                CurrentView = _reportsViewModel;
+                ActiveNav = "Reports";
+            });
+            NavPatientsCommand = new RelayCommand(async () =>
+            {
+                CurrentView = _patientViewModel;
+                ActiveNav = "Patients";
+                await _patientViewModel.LoadAsync();
+            });
         }
+
         private void OpenIssueDialog(Issue? issue)
         {
             var vm = _serviceProvider.GetRequiredService<AddEditIssueViewModel>();
 
-            var dialog = new AddIssueView(vm)
+            var dialog = new AddEditIssueView(vm)
             {
                 Owner = System.Windows.Application.Current.MainWindow,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
@@ -122,6 +144,48 @@ namespace OpdManager.Presentation.ViewModels
             vm.OnSaved += OnSaved;
             vm.OnCancelled += OnCancelled;
             dialog.ShowDialog();
+        }
+
+        private void OpenCreatePatientDialog()
+        {
+            var vm = _serviceProvider.GetRequiredService<CreatePatientViewModel>();
+            var dialog = new CreatePatientView(vm)
+            {
+                Owner = System.Windows.Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+
+            async void OnSaved()
+            {
+                vm.OnSaved     -= OnSaved;
+                vm.OnCancelled -= OnCancelled;
+                dialog.Close();
+                await _patientViewModel.LoadAsync();
+            }
+
+            void OnCancelled()
+            {
+                vm.OnSaved     -= OnSaved;
+                vm.OnCancelled -= OnCancelled;
+                dialog.Close();
+            }
+
+            vm.OnSaved     += OnSaved;
+            vm.OnCancelled += OnCancelled;
+            dialog.ShowDialog();
+        }
+
+        private async void OpenPatientHistory(Domain.Entities.Patient patient)
+        {
+            var vm = _serviceProvider.GetRequiredService<PatientHistoryViewModel>();
+            await vm.LoadAsync(patient);
+
+            var window = new PatientHistoryView(vm)
+            {
+                Owner = System.Windows.Application.Current.MainWindow,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            window.ShowDialog();
         }
 
         private async void OpenAppointmentDialog(AppointmentDto? dto)
@@ -156,7 +220,6 @@ namespace OpdManager.Presentation.ViewModels
 
             vm.OnSaved += OnSaved;
             vm.OnCancelled += OnCancelled;
-
             dialog.ShowDialog();
         }
 

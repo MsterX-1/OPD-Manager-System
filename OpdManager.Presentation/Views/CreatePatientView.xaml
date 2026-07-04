@@ -1,7 +1,7 @@
-<Window x:Class="OpdManager.Presentation.Views.AddIssueView"
+<Window x:Class="OpdManager.Presentation.Views.CreatePatientView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{Binding DialogTitle}"
+        Title="New Patient"
         Height="400" Width="440"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -14,7 +14,7 @@
             <Setter Property="Foreground" Value="#546E7A"/>
             <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
-        <Style x:Key="PlaceholderTextBox" TargetType="TextBox">
+        <Style x:Key="FormInput" TargetType="TextBox">
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="BorderBrush" Value="#E0E0E0"/>
@@ -28,28 +28,9 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6">
-                            <Grid>
-                                <TextBlock x:Name="Placeholder"
-                                           Text="{TemplateBinding Tag}"
-                                           Foreground="#B0BEC5"
-                                           FontSize="{TemplateBinding FontSize}"
-                                           Padding="{TemplateBinding Padding}"
-                                           VerticalAlignment="Center"
-                                           Visibility="Collapsed"
-                                           IsHitTestVisible="False"/>
-                                <ScrollViewer x:Name="PART_ContentHost"
-                                              Padding="{TemplateBinding Padding}"/>
-                            </Grid>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Padding="{TemplateBinding Padding}"/>
                         </Border>
-                        <ControlTemplate.Triggers>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="Text" Value=""/>
-                                    <Condition Property="IsFocused" Value="False"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
-                            </MultiTrigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -58,31 +39,26 @@
 
     <Border Margin="24">
         <StackPanel>
-            <!-- Title -->
-            <TextBlock Text="Issue Title" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource PlaceholderTextBox}"
-                     Tag="Brief title of the issue..."
-                     Margin="0,0,0,16"/>
 
-            <!-- Category -->
-            <TextBlock Text="Category" Style="{StaticResource FormLabel}"/>
-            <ComboBox ItemsSource="{Binding Categories}"
-                      SelectedItem="{Binding Category}"
-                      Padding="12,10" FontSize="13"
-                      BorderBrush="#E0E0E0"
-                      Margin="0,0,0,16"/>
+            <TextBlock Text="Full Name *" Style="{StaticResource FormLabel}"/>
+            <TextBox Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormInput}" Margin="0,0,0,16"/>
 
-            <!-- Description -->
-            <TextBlock Text="Description" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource PlaceholderTextBox}"
-                     Tag="Describe the issue in detail..."
-                     Height="80" TextWrapping="Wrap"
-                     AcceptsReturn="True"
-                     Margin="0,0,0,24"/>
+            <TextBlock Text="Phone Number" Style="{StaticResource FormLabel}"/>
+            <TextBox Text="{Binding PhoneNumber, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormInput}" Margin="0,0,0,16"/>
 
-            <!-- Buttons -->
+            <TextBlock Text="Date of Birth" Style="{StaticResource FormLabel}"/>
+            <DatePicker SelectedDate="{Binding DateOfBirth}"
+                        FontSize="13" BorderBrush="#E0E0E0"
+                        Margin="0,0,0,16"/>
+
+            <TextBlock Text="Notes (optional)" Style="{StaticResource FormLabel}"/>
+            <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource FormInput}"
+                     Height="60" TextWrapping="Wrap"
+                     AcceptsReturn="True" Margin="0,0,0,24"/>
+
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -104,7 +80,7 @@
                     </Button.Template>
                 </Button>
 
-                <Button Grid.Column="2" Content="Report Issue"
+                <Button Grid.Column="2" Content="Create Patient"
                         Command="{Binding SaveCommand}"
                         Background="#1C2833" Foreground="White"
                         BorderThickness="0" Padding="0,12" Cursor="Hand">
