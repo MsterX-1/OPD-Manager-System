@@ -79,6 +79,10 @@ builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
 builder.Services.AddScoped<IIssueRepository, IssueRepository>();
 builder.Services.AddScoped<IQueueRepository, QueueRepository>();
 builder.Services.AddScoped<IDoctorScheduleRepository, DoctorScheduleRepository>();
+builder.Services.AddScoped<IMedicalRecordRepository, MedicalRecordRepository>();
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<IReferralRepository, ReferralRepository>();
+builder.Services.AddScoped<IDepartmentQueueRepository, DepartmentQueueRepository>();
 builder.Services.AddScoped<IUnitOfWork, OpdManager.Infrastructure.UnitOfWork.UnitOfWork>();
 
 // ── Services ────────────────────────────────────────────────────────────────
@@ -89,6 +93,9 @@ builder.Services.AddScoped<IQueueService, QueueService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+builder.Services.AddScoped<IDepartmentManagementService, DepartmentManagementService>();
+builder.Services.AddScoped<IReferralService, ReferralService>();
 
 // ── Controllers + SignalR + CORS ────────────────────────────────────────────
 builder.Services.AddControllers()
@@ -151,6 +158,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<QueueHub>("/hubs/queue");
 app.MapHub<DashboardHub>("/hubs/dashboard");
+app.MapHub<DepartmentHub>("/hubs/department");
 
 // ── Database Migration + Seed ───────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
@@ -161,8 +169,8 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-    // Seed roles
-    string[] roles = ["Admin", "Staff"];
+    // Seed roles — including new Phase A roles
+    string[] roles = ["Admin", "Staff", "Doctor", "DepartmentStaff"];
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))

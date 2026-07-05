@@ -4,12 +4,15 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { useAuthStore } from '../store';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface User {
   id: string;
   email: string;
   fullName: string;
   role: string;
+  doctorId?: number | null;
+  departmentId?: number | null;
 }
 
 export default function Users() {
@@ -17,12 +20,15 @@ export default function Users() {
   const currentUser = useAuthStore(state => state.user);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
     password: '',
-    role: 'Staff'
+    role: 'Staff',
+    doctorId: '',
+    departmentId: ''
   });
 
   const { data: users, isLoading } = useQuery({
@@ -30,6 +36,22 @@ export default function Users() {
     queryFn: async () => {
       const res = await api.get('/users');
       return res.data as User[];
+    }
+  });
+
+  const { data: doctors = [] } = useQuery({
+    queryKey: ['allDoctors'],
+    queryFn: async () => {
+      const res = await api.get('/doctors');
+      return res.data;
+    }
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ['allDepartments'],
+    queryFn: async () => {
+      const res = await api.get('/departments');
+      return res.data;
     }
   });
 
@@ -64,29 +86,44 @@ export default function Users() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      doctorId: formData.role === 'Doctor' && formData.doctorId ? Number(formData.doctorId) : null,
+      departmentId: formData.role === 'DepartmentStaff' && formData.departmentId ? Number(formData.departmentId) : null,
+    };
+
     if (editingUser) {
       updateMutation.mutate({
         id: editingUser.id,
         data: {
-          fullName: formData.fullName,
-          newPassword: formData.password || null,
-          role: formData.role
+          fullName: payload.fullName,
+          newPassword: payload.password || null,
+          role: payload.role,
+          doctorId: payload.doctorId,
+          departmentId: payload.departmentId
         }
       });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
   const openNewUser = () => {
     setEditingUser(null);
-    setFormData({ email: '', fullName: '', password: '', role: 'Staff' });
+    setFormData({ email: '', fullName: '', password: '', role: 'Staff', doctorId: '', departmentId: '' });
     setShowModal(true);
   };
 
   const openEdit = (user: User) => {
     setEditingUser(user);
-    setFormData({ email: user.email, fullName: user.fullName, password: '', role: user.role });
+    setFormData({ 
+      email: user.email, 
+      fullName: user.fullName, 
+      password: '', 
+      role: user.role,
+      doctorId: user.doctorId?.toString() || '',
+      departmentId: user.departmentId?.toString() || ''
+    });
     setShowModal(true);
   };
 
@@ -133,9 +170,7 @@ export default function Users() {
                       <Edit2 size={16} />
                     </button>
                     {u.id !== currentUser?.id && (
-                      <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => {
-                        if (confirm(`Are you sure you want to delete ${u.fullName}?`)) deleteMutation.mutate(u.id);
-                      }}>
+                      <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setUserToDelete(u)}>
                         <Trash2 size={16} />
                       </button>
                     )}
@@ -179,8 +214,34 @@ export default function Users() {
                 <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
                   <option value="Staff">Staff</option>
                   <option value="Admin">Admin</option>
+                  <option value="Doctor">Doctor</option>
+                  <option value="DepartmentStaff">Department Staff</option>
                 </select>
               </div>
+              
+              {formData.role === 'Doctor' && (
+                <div className="form-group">
+                  <label>Linked Doctor</label>
+                  <select value={formData.doctorId} onChange={e => setFormData({...formData, doctorId: e.target.value})}>
+                    <option value="">Select Doctor...</option>
+                    {doctors.map((d: any) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.specialty})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {formData.role === 'DepartmentStaff' && (
+                <div className="form-group">
+                  <label>Linked Department</label>
+                  <select value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})}>
+                    <option value="">Select Department...</option>
+                    {departments.map((d: any) => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.type})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={createMutation.isPending || updateMutation.isPending}>
                   Save User
@@ -190,6 +251,16 @@ export default function Users() {
             </form>
           </div>
         </div>
+      )}
+
+      {userToDelete && (
+        <ConfirmModal
+          title="Delete User"
+          message={`Are you sure you want to delete the user "${userToDelete.fullName}"? This action cannot be undone.`}
+          confirmText="Delete User"
+          onConfirm={() => deleteMutation.mutate(userToDelete.id)}
+          onCancel={() => setUserToDelete(null)}
+        />
       )}
     </div>
   );

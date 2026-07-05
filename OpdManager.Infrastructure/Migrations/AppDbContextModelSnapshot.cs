@@ -206,6 +206,144 @@ namespace OpdManager.Infrastructure.Migrations
                     b.ToTable("Appointments");
                 });
 
+            modelBuilder.Entity("OpdManager.Domain.Entities.Attachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("MedicalRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReferralId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedicalRecordId");
+
+                    b.HasIndex("ReferralId");
+
+                    b.ToTable("Attachments");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Department", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Departments");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.DepartmentQueueEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CheckInTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("QueueNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReferralId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("ReferralId")
+                        .IsUnique();
+
+                    b.ToTable("DepartmentQueueEntries");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.DepartmentService", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Fee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("DepartmentServices");
+                });
+
             modelBuilder.Entity("OpdManager.Domain.Entities.Doctor", b =>
                 {
                     b.Property<int>("Id")
@@ -233,7 +371,14 @@ namespace OpdManager.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.ToTable("Doctors");
                 });
@@ -312,6 +457,77 @@ namespace OpdManager.Infrastructure.Migrations
                     b.ToTable("Issues");
                 });
 
+            modelBuilder.Entity("OpdManager.Domain.Entities.MedicalRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BloodPressureDiastolic")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BloodPressureSystolic")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChiefComplaint")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ClinicalNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Diagnosis")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("HeightCm")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<int?>("OxygenSaturation")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PulseRate")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RespiratoryRate")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TemperatureC")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("WeightKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AppointmentId")
+                        .IsUnique();
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("MedicalRecords");
+                });
+
             modelBuilder.Entity("OpdManager.Domain.Entities.Patient", b =>
                 {
                     b.Property<int>("Id")
@@ -331,6 +547,16 @@ namespace OpdManager.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("Gender")
+                        .HasColumnType("int");
+
+                    b.Property<string>("KnownAllergies")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NationalId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
@@ -339,7 +565,46 @@ namespace OpdManager.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NationalId")
+                        .IsUnique()
+                        .HasFilter("[NationalId] IS NOT NULL");
+
                     b.ToTable("Patients");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Prescription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Dosage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Frequency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Instructions")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("MedicalRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MedicationName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MedicalRecordId");
+
+                    b.ToTable("Prescriptions");
                 });
 
             modelBuilder.Entity("OpdManager.Domain.Entities.QueueEntry", b =>
@@ -376,6 +641,67 @@ namespace OpdManager.Infrastructure.Migrations
                     b.ToTable("QueueEntries");
                 });
 
+            modelBuilder.Entity("OpdManager.Domain.Entities.Referral", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PatientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ReferralType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReferringDoctorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResultNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SourceAppointmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetDepartmentServiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TargetDoctorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ReferringDoctorId");
+
+                    b.HasIndex("SourceAppointmentId");
+
+                    b.HasIndex("TargetDepartmentId");
+
+                    b.HasIndex("TargetDepartmentServiceId");
+
+                    b.HasIndex("TargetDoctorId");
+
+                    b.ToTable("Referrals");
+                });
+
             modelBuilder.Entity("OpdManager.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -387,6 +713,12 @@ namespace OpdManager.Infrastructure.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DoctorId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -433,6 +765,13 @@ namespace OpdManager.Infrastructure.Migrations
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId")
+                        .HasFilter("[DepartmentId] IS NOT NULL");
+
+                    b.HasIndex("DoctorId")
+                        .IsUnique()
+                        .HasFilter("[DoctorId] IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -550,6 +889,53 @@ namespace OpdManager.Infrastructure.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("OpdManager.Domain.Entities.Attachment", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.MedicalRecord", "MedicalRecord")
+                        .WithMany("Attachments")
+                        .HasForeignKey("MedicalRecordId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("OpdManager.Domain.Entities.Referral", "Referral")
+                        .WithMany("Attachments")
+                        .HasForeignKey("ReferralId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("MedicalRecord");
+
+                    b.Navigation("Referral");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.DepartmentQueueEntry", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.Department", "Department")
+                        .WithMany("QueueEntries")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Referral", "Referral")
+                        .WithOne("DepartmentQueueEntry")
+                        .HasForeignKey("OpdManager.Domain.Entities.DepartmentQueueEntry", "ReferralId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Referral");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.DepartmentService", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.Department", "Department")
+                        .WithMany("Services")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("OpdManager.Domain.Entities.DoctorSchedule", b =>
                 {
                     b.HasOne("OpdManager.Domain.Entities.Doctor", "Doctor")
@@ -570,6 +956,44 @@ namespace OpdManager.Infrastructure.Migrations
                     b.Navigation("Appointment");
                 });
 
+            modelBuilder.Entity("OpdManager.Domain.Entities.MedicalRecord", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.Appointment", "Appointment")
+                        .WithOne("MedicalRecord")
+                        .HasForeignKey("OpdManager.Domain.Entities.MedicalRecord", "AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Doctor", "Doctor")
+                        .WithMany("MedicalRecords")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Patient", "Patient")
+                        .WithMany("MedicalRecords")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Appointment");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Prescription", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.MedicalRecord", "MedicalRecord")
+                        .WithMany("Prescriptions")
+                        .HasForeignKey("MedicalRecordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MedicalRecord");
+                });
+
             modelBuilder.Entity("OpdManager.Domain.Entities.QueueEntry", b =>
                 {
                     b.HasOne("OpdManager.Domain.Entities.Appointment", "Appointment")
@@ -579,6 +1003,54 @@ namespace OpdManager.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Appointment");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Referral", b =>
+                {
+                    b.HasOne("OpdManager.Domain.Entities.Patient", "Patient")
+                        .WithMany("Referrals")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Doctor", "ReferringDoctor")
+                        .WithMany("ReferralsCreated")
+                        .HasForeignKey("ReferringDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Appointment", "SourceAppointment")
+                        .WithMany()
+                        .HasForeignKey("SourceAppointmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("OpdManager.Domain.Entities.Department", "TargetDepartment")
+                        .WithMany("Referrals")
+                        .HasForeignKey("TargetDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("OpdManager.Domain.Entities.DepartmentService", "TargetDepartmentService")
+                        .WithMany()
+                        .HasForeignKey("TargetDepartmentServiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("OpdManager.Domain.Entities.Doctor", "TargetDoctor")
+                        .WithMany("ReferralsReceived")
+                        .HasForeignKey("TargetDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ReferringDoctor");
+
+                    b.Navigation("SourceAppointment");
+
+                    b.Navigation("TargetDepartment");
+
+                    b.Navigation("TargetDepartmentService");
+
+                    b.Navigation("TargetDoctor");
                 });
 
             modelBuilder.Entity("OpdManager.Infrastructure.Identity.RefreshToken", b =>
@@ -594,19 +1066,54 @@ namespace OpdManager.Infrastructure.Migrations
 
             modelBuilder.Entity("OpdManager.Domain.Entities.Appointment", b =>
                 {
+                    b.Navigation("MedicalRecord");
+
                     b.Navigation("QueueEntry");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Department", b =>
+                {
+                    b.Navigation("QueueEntries");
+
+                    b.Navigation("Referrals");
+
+                    b.Navigation("Services");
                 });
 
             modelBuilder.Entity("OpdManager.Domain.Entities.Doctor", b =>
                 {
                     b.Navigation("Appointments");
 
+                    b.Navigation("MedicalRecords");
+
+                    b.Navigation("ReferralsCreated");
+
+                    b.Navigation("ReferralsReceived");
+
                     b.Navigation("Schedules");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.MedicalRecord", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Prescriptions");
                 });
 
             modelBuilder.Entity("OpdManager.Domain.Entities.Patient", b =>
                 {
                     b.Navigation("Appointments");
+
+                    b.Navigation("MedicalRecords");
+
+                    b.Navigation("Referrals");
+                });
+
+            modelBuilder.Entity("OpdManager.Domain.Entities.Referral", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("DepartmentQueueEntry");
                 });
 #pragma warning restore 612, 618
         }

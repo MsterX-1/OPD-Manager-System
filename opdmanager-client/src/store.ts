@@ -6,6 +6,8 @@ export interface UserInfo {
   email: string;
   fullName: string;
   role: string;
+  doctorId?: number | null;
+  departmentId?: number | null;
 }
 
 interface AuthState {

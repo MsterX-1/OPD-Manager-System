@@ -3,12 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using OpdManager.Api.Models;
 using OpdManager.Application.Services.Interfaces;
 using OpdManager.Domain.Entities;
+using System.Security.Claims;
 
 namespace OpdManager.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+/// <summary>
+/// Provides REST endpoints for managing doctor profiles, schedules, and active queues.
+/// </summary>
 public class DoctorsController : ControllerBase
 {
     private readonly IDoctorService _doctorService;
@@ -40,6 +44,30 @@ public class DoctorsController : ControllerBase
         var doctor = await _doctorService.GetByIdAsync(id);
         if (doctor is null) return NotFound();
         return Ok(MapToResponse(doctor));
+    }
+
+    [HttpGet("me/queue")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyQueue([FromServices] IQueueService queueService)
+    {
+        var claim = User.FindFirstValue("DoctorId");
+        if (!int.TryParse(claim, out var doctorId)) return Forbid();
+
+        var queue = await queueService.GetTodayQueueAsync();
+        return Ok(queue.Where(q => q.DoctorId == doctorId));
+    }
+
+    [HttpGet("me/referrals")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyReferrals([FromServices] IReferralService referralService)
+    {
+        var claim = User.FindFirstValue("DoctorId");
+        if (!int.TryParse(claim, out var doctorId)) return Forbid();
+
+        var sent = await referralService.GetByReferringDoctorAsync(doctorId);
+        var received = await referralService.GetByTargetDoctorAsync(doctorId);
+
+        return Ok(new { sent, received });
     }
 
     [HttpPost]

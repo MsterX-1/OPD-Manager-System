@@ -3,6 +3,10 @@ using OpdManager.Domain.Enums;
 
 namespace OpdManager.Application.Services.Interfaces;
 
+/// <summary>
+/// Handles the live patient queue and performance metrics.
+/// Transitions appointments into active waitlist entries.
+/// </summary>
 public interface IQueueService
 {
     Task<IEnumerable<QueueEntryDto>> GetTodayQueueAsync();

@@ -19,3 +19,21 @@ export function AdminRoute() {
   
   return <Outlet />;
 }
+
+export function DoctorRoute() {
+  const user = useAuthStore(state => state.user);
+  
+  if (!user) return <Navigate to="/login" replace />;
+  if (user?.role !== 'Doctor' && user?.role !== 'Admin') return <Navigate to="/" replace />;
+  
+  return <Outlet />;
+}
+
+export function DepartmentStaffRoute() {
+  const user = useAuthStore(state => state.user);
+  
+  if (!user) return <Navigate to="/login" replace />;
+  if (user?.role !== 'DepartmentStaff' && user?.role !== 'Admin') return <Navigate to="/" replace />;
+  
+  return <Outlet />;
+}

@@ -4,6 +4,9 @@ using OpdManager.Domain.Enums;
 
 namespace OpdManager.Application.Services.Interfaces;
 
+/// <summary>
+/// Defines business rules and workflows for booking, updating, and cancelling patient appointments.
+/// </summary>
 public interface IAppointmentService
 {
     Task<IEnumerable<AppointmentDto>> GetByDateAsync(DateTime date);

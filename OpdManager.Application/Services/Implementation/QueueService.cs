@@ -155,6 +155,8 @@ public class QueueService : IQueueService
     {
         Id = q.Id,
         QueueNumber = q.QueueNumber,
+        DoctorId = q.Appointment?.DoctorId ?? 0,
+        AppointmentId = q.AppointmentId,
         PatientName = q.Appointment?.Patient?.FullName ?? string.Empty,
         DoctorName = q.Appointment?.Doctor?.Name ?? string.Empty,
         DoctorSpecialty = q.Appointment?.Doctor?.Specialty ?? string.Empty,

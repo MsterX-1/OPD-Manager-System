@@ -47,13 +47,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            User = new UserInfo
-            {
-                Id = user.Id,
-                Email = user.Email!,
-                FullName = user.FullName,
-                Role = roles.FirstOrDefault() ?? "Staff"
-            }
+            User = BuildUserInfo(user, roles)
         });
     }
 
@@ -92,13 +86,7 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            User = new UserInfo
-            {
-                Id = user.Id,
-                Email = user.Email!,
-                FullName = user.FullName,
-                Role = roles.FirstOrDefault() ?? "Staff"
-            }
+            User = BuildUserInfo(user, roles)
         });
     }
 
@@ -111,14 +99,18 @@ public class AuthController : ControllerBase
         if (user is null) return NotFound();
 
         var roles = await _userManager.GetRolesAsync(user);
-        return Ok(new UserInfo
-        {
-            Id = user.Id,
-            Email = user.Email!,
-            FullName = user.FullName,
-            Role = roles.FirstOrDefault() ?? "Staff"
-        });
+        return Ok(BuildUserInfo(user, roles));
     }
+
+    private UserInfo BuildUserInfo(ApplicationUser user, IList<string> roles) => new()
+    {
+        Id = user.Id,
+        Email = user.Email!,
+        FullName = user.FullName,
+        Role = roles.FirstOrDefault() ?? "Staff",
+        DoctorId = user.DoctorId,
+        DepartmentId = user.DepartmentId
+    };
 
     private string GenerateAccessToken(ApplicationUser user, IList<string> roles)
     {
@@ -134,6 +126,12 @@ public class AuthController : ControllerBase
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        // Include DoctorId / DepartmentId as claims for scoped access
+        if (user.DoctorId.HasValue)
+            claims.Add(new Claim("DoctorId", user.DoctorId.Value.ToString()));
+        if (user.DepartmentId.HasValue)
+            claims.Add(new Claim("DepartmentId", user.DepartmentId.Value.ToString()));
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],

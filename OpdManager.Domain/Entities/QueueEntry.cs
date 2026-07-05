@@ -3,6 +3,10 @@ using OpdManager.Domain.Enums;
 
 namespace OpdManager.Domain.Entities;
 
+/// <summary>
+/// Tracks the live status of a patient waiting to see a doctor.
+/// Generated when a scheduled appointment is checked in by staff.
+/// </summary>
 public class QueueEntry
 {
     public int Id { get; set; }

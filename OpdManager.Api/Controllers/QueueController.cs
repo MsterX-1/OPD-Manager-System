@@ -10,6 +10,9 @@ namespace OpdManager.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+/// <summary>
+/// Handles real-time patient queue lifecycle (check-in, status updates) and performance metrics.
+/// </summary>
 public class QueueController : ControllerBase
 {
     private readonly IQueueService _queueService;

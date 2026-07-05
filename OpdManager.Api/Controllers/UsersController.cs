@@ -14,6 +14,8 @@ public class UsersController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
 
+    private static readonly string[] ValidRoles = ["Admin", "Staff", "Doctor", "DepartmentStaff"];
+
     public UsersController(UserManager<ApplicationUser> userManager)
     {
         _userManager = userManager;
@@ -32,7 +34,9 @@ public class UsersController : ControllerBase
                 u.Id,
                 u.Email,
                 u.FullName,
-                Role = roles.FirstOrDefault() ?? "Staff"
+                Role = roles.FirstOrDefault() ?? "Staff",
+                u.DoctorId,
+                u.DepartmentId
             });
         }
         return Ok(result);
@@ -50,7 +54,9 @@ public class UsersController : ControllerBase
             user.Id,
             user.Email,
             user.FullName,
-            Role = roles.FirstOrDefault() ?? "Staff"
+            Role = roles.FirstOrDefault() ?? "Staff",
+            user.DoctorId,
+            user.DepartmentId
         });
     }
 
@@ -66,14 +72,16 @@ public class UsersController : ControllerBase
             UserName = request.Email,
             Email = request.Email,
             FullName = request.FullName,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            DoctorId = request.DoctorId,
+            DepartmentId = request.DepartmentId
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
             return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
 
-        var validRole = request.Role == "Admin" ? "Admin" : "Staff";
+        var validRole = ValidRoles.Contains(request.Role) ? request.Role : "Staff";
         await _userManager.AddToRoleAsync(user, validRole);
 
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, new
@@ -81,7 +89,9 @@ public class UsersController : ControllerBase
             user.Id,
             user.Email,
             user.FullName,
-            Role = validRole
+            Role = validRole,
+            user.DoctorId,
+            user.DepartmentId
         });
     }
 
@@ -92,6 +102,8 @@ public class UsersController : ControllerBase
         if (user is null) return NotFound();
 
         user.FullName = request.FullName;
+        user.DoctorId = request.DoctorId;
+        user.DepartmentId = request.DepartmentId;
 
         if (!string.IsNullOrWhiteSpace(request.NewPassword))
         {
@@ -105,14 +117,14 @@ public class UsersController : ControllerBase
 
         // Update role
         var currentRoles = await _userManager.GetRolesAsync(user);
-        var validRole = request.Role == "Admin" ? "Admin" : "Staff";
+        var validRole = ValidRoles.Contains(request.Role) ? request.Role : "Staff";
         if (!currentRoles.Contains(validRole))
         {
             await _userManager.RemoveFromRolesAsync(user, currentRoles);
             await _userManager.AddToRoleAsync(user, validRole);
         }
 
-        return Ok(new { user.Id, user.Email, user.FullName, Role = validRole });
+        return Ok(new { user.Id, user.Email, user.FullName, Role = validRole, user.DoctorId, user.DepartmentId });
     }
 
     [HttpDelete("{id}")]

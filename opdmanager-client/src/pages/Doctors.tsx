@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, Check, XCircle, Search } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface DoctorSchedule {
   dayOfWeek: number;
@@ -43,6 +44,7 @@ export default function Doctors() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+  const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [formData, setFormData] = useState<Omit<Doctor, 'id'>>({
@@ -250,9 +252,7 @@ export default function Doctors() {
                     <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem' }} onClick={() => openEdit(d)}>
                       <Edit2 size={16} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => {
-                      if (confirm(`Are you sure you want to delete Dr. ${d.name}?`)) deleteMutation.mutate(d.id);
-                    }}>
+                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setDoctorToDelete(d)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -340,6 +340,16 @@ export default function Doctors() {
             </form>
           </div>
         </div>
+      )}
+
+      {doctorToDelete && (
+        <ConfirmModal
+          title="Delete Doctor"
+          message={`Are you sure you want to delete Dr. ${doctorToDelete.name}? This action cannot be undone and may fail if they have appointments.`}
+          confirmText="Delete Doctor"
+          onConfirm={() => deleteMutation.mutate(doctorToDelete.id)}
+          onCancel={() => setDoctorToDelete(null)}
+        />
       )}
     </div>
   );

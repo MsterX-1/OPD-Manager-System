@@ -6,6 +6,8 @@ public class QueueEntryDto
 {
     public int Id { get; set; }
     public int QueueNumber { get; set; }
+    public int DoctorId { get; set; }
+    public int AppointmentId { get; set; }
     public string PatientName { get; set; } = string.Empty;
     public string DoctorName { get; set; } = string.Empty;
     public string DoctorSpecialty { get; set; } = string.Empty;

@@ -5,6 +5,10 @@ import * as signalR from '@microsoft/signalr';
 import api from '../api';
 import toast from 'react-hot-toast';
 
+/**
+ * QueueMonitor Component
+ * A public-facing Kanban board tracking all patients' real-time flow through the hospital.
+ */
 export default function QueueMonitor() {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());

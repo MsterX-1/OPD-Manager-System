@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import * as signalR from '@microsoft/signalr';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Search, Plus, X, Edit2, Trash2, Calendar } from 'lucide-react';
 import Select from 'react-select';
+import ConfirmModal from '../components/ConfirmModal';
 
 const customStyles = {
   control: (base: any, state: any) => ({
@@ -84,6 +86,10 @@ const isWorkingDay = (dateStr: string, doctor: any) => {
   return !!(schedule && schedule.isWorking);
 };
 
+/**
+ * Appointments Component
+ * Allows receptionists to book, cancel, or check-in scheduled patient appointments.
+ */
 export default function Appointments() {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<'date' | 'search'>('date');
@@ -96,6 +102,8 @@ export default function Appointments() {
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any | null>(null);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<any | null>(null);
   const [customDateMode, setCustomDateMode] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -137,6 +145,30 @@ export default function Appointments() {
       return res.data.items;
     }
   });
+
+  useEffect(() => {
+    let isMounted = true;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5073';
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${API_URL}/hubs/queue`, {
+        withCredentials: true
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on("QueueUpdated", () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    });
+
+    connection.start().catch(err => {
+      if (isMounted) console.error("Appointments SignalR Error: ", err);
+    });
+
+    return () => {
+      isMounted = false;
+      connection.stop();
+    };
+  }, [queryClient]);
 
   const { data: doctors } = useQuery({
     queryKey: ['activeDoctors'],
@@ -384,11 +416,7 @@ export default function Appointments() {
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '0.35rem 0.5rem', color: 'var(--warning)', borderColor: 'var(--warning)' }}
-                            onClick={() => {
-                              if (confirm('Are you sure you want to cancel this appointment?')) {
-                                cancelMutation.mutate(a.id);
-                              }
-                            }}
+                            onClick={() => setAppointmentToCancel(a)}
                             title="Cancel"
                           >
                             <X size={16} />
@@ -399,11 +427,7 @@ export default function Appointments() {
                       <button 
                         className="btn btn-danger" 
                         style={{ padding: '0.35rem 0.5rem' }}
-                        onClick={() => {
-                          if (confirm('Are you sure you want to permanently delete this appointment?')) {
-                            deleteMutation.mutate(a.id);
-                          }
-                        }}
+                        onClick={() => setAppointmentToDelete(a)}
                         title="Delete Permanently"
                       >
                         <Trash2 size={16} />
@@ -584,6 +608,26 @@ export default function Appointments() {
             </form>
           </div>
         </div>
+      )}
+
+      {appointmentToCancel && (
+        <ConfirmModal
+          title="Cancel Appointment"
+          message={`Are you sure you want to cancel this appointment for ${appointmentToCancel.patientName}?`}
+          confirmText="Cancel Appointment"
+          onConfirm={() => cancelMutation.mutate(appointmentToCancel.id)}
+          onCancel={() => setAppointmentToCancel(null)}
+        />
+      )}
+
+      {appointmentToDelete && (
+        <ConfirmModal
+          title="Delete Appointment"
+          message={`Are you sure you want to permanently delete this appointment for ${appointmentToDelete.patientName}? This cannot be undone.`}
+          confirmText="Delete Appointment"
+          onConfirm={() => deleteMutation.mutate(appointmentToDelete.id)}
+          onCancel={() => setAppointmentToDelete(null)}
+        />
       )}
     </div>
   );

@@ -88,6 +88,9 @@ public class PatientsController : ControllerBase
             PhoneNumber = request.PhoneNumber,
             DateOfBirth = request.DateOfBirth,
             Notes = request.Notes,
+            NationalId = request.NationalId,
+            Gender = request.Gender,
+            KnownAllergies = request.KnownAllergies,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -105,6 +108,9 @@ public class PatientsController : ControllerBase
         patient.PhoneNumber = request.PhoneNumber;
         patient.DateOfBirth = request.DateOfBirth;
         patient.Notes = request.Notes;
+        patient.NationalId = request.NationalId;
+        patient.Gender = request.Gender;
+        patient.KnownAllergies = request.KnownAllergies;
 
         await _patientService.UpdateAsync(patient);
         return Ok(patient);

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, Search, ChevronLeft, ChevronRight, CheckCircle, Clock } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Issue {
   id: number;
@@ -25,6 +26,7 @@ export default function Issues() {
   const [showModal, setShowModal] = useState(false);
   const [showResolutionModal, setShowResolutionModal] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [issueToDelete, setIssueToDelete] = useState<Issue | null>(null);
   const [resolutionText, setResolutionText] = useState('');
   
   const [formData, setFormData] = useState({
@@ -228,9 +230,7 @@ export default function Issues() {
                         </button>
                       </>
                     )}
-                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => {
-                      if (confirm(`Are you sure you want to delete this issue?`)) deleteMutation.mutate(issue.id);
-                    }} title="Delete">
+                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setIssueToDelete(issue)} title="Delete">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -330,6 +330,16 @@ export default function Issues() {
             </form>
           </div>
         </div>
+      )}
+
+      {issueToDelete && (
+        <ConfirmModal
+          title="Delete Issue"
+          message={`Are you sure you want to delete this issue? This action cannot be undone.`}
+          confirmText="Delete Issue"
+          onConfirm={() => deleteMutation.mutate(issueToDelete.id)}
+          onCancel={() => setIssueToDelete(null)}
+        />
       )}
     </div>
   );

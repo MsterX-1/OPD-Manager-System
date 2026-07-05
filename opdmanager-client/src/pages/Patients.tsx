@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, Edit2, X, Search, ChevronLeft, ChevronRight, History } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Search, ChevronLeft, ChevronRight, History, FileText } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 interface Patient {
   id: number;
@@ -10,6 +11,9 @@ interface Patient {
   phoneNumber: string;
   dateOfBirth: string | null;
   notes: string | null;
+  nationalId: string | null;
+  gender: string;
+  knownAllergies: string | null;
   createdAt: string;
 }
 
@@ -21,12 +25,16 @@ export default function Patients() {
   const [showModal, setShowModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   
   const [formData, setFormData] = useState<Omit<Patient, 'id' | 'createdAt'>>({
     fullName: '',
     phoneNumber: '',
     dateOfBirth: '',
-    notes: ''
+    notes: '',
+    nationalId: '',
+    gender: 'Unknown',
+    knownAllergies: ''
   });
 
   // Debounce search
@@ -107,7 +115,7 @@ export default function Patients() {
 
   const openNew = () => {
     setSelectedPatient(null);
-    setFormData({ fullName: '', phoneNumber: '', dateOfBirth: '', notes: '' });
+    setFormData({ fullName: '', phoneNumber: '', dateOfBirth: '', notes: '', nationalId: '', gender: 'Unknown', knownAllergies: '' });
     setShowModal(true);
   };
 
@@ -117,7 +125,10 @@ export default function Patients() {
       fullName: patient.fullName, 
       phoneNumber: patient.phoneNumber || '', 
       dateOfBirth: patient.dateOfBirth ? patient.dateOfBirth.split('T')[0] : '', 
-      notes: patient.notes || '' 
+      notes: patient.notes || '',
+      nationalId: patient.nationalId || '',
+      gender: patient.gender || 'Unknown',
+      knownAllergies: patient.knownAllergies || ''
     });
     setShowModal(true);
   };
@@ -160,6 +171,7 @@ export default function Patients() {
             <tr>
               <th>Name</th>
               <th>Phone</th>
+              <th>Gender</th>
               <th>Date of Birth</th>
               <th>Registered</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
@@ -174,19 +186,21 @@ export default function Patients() {
               <tr key={p.id}>
                 <td style={{ fontWeight: 500 }}>{p.fullName}</td>
                 <td>{p.phoneNumber || '-'}</td>
+                <td>{p.gender}</td>
                 <td>{p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString() : '-'}</td>
                 <td>{new Date(p.createdAt).toLocaleDateString()}</td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <a href={`/patient-chart/${p.id}`} className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem', textDecoration: 'none' }} title="Medical Chart">
+                      <FileText size={16} />
+                    </a>
                     <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem' }} onClick={() => openHistory(p)} title="History">
                       <History size={16} />
                     </button>
                     <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem' }} onClick={() => openEdit(p)} title="Edit">
                       <Edit2 size={16} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => {
-                      if (confirm(`Are you sure you want to delete ${p.fullName}?`)) deleteMutation.mutate(p.id);
-                    }} title="Delete">
+                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setPatientToDelete(p)} title="Delete">
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -248,9 +262,28 @@ export default function Patients() {
                 <label>Phone Number</label>
                 <input type="text" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
               </div>
+              <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label>Date of Birth</label>
+                  <input type="date" value={formData.dateOfBirth || ''} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} />
+                </div>
+                <div>
+                  <label>Gender</label>
+                  <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
+                    <option value="Unknown">Unknown</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
               <div className="form-group">
-                <label>Date of Birth</label>
-                <input type="date" value={formData.dateOfBirth || ''} onChange={e => setFormData({...formData, dateOfBirth: e.target.value})} />
+                <label>National ID</label>
+                <input type="text" value={formData.nationalId || ''} onChange={e => setFormData({...formData, nationalId: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Known Allergies</label>
+                <input type="text" value={formData.knownAllergies || ''} onChange={e => setFormData({...formData, knownAllergies: e.target.value})} />
               </div>
               <div className="form-group">
                 <label>Notes (Optional)</label>
@@ -311,6 +344,16 @@ export default function Patients() {
             </div>
           </div>
         </div>
+      )}
+
+      {patientToDelete && (
+        <ConfirmModal
+          title="Delete Patient"
+          message={`Are you sure you want to delete ${patientToDelete.fullName}? This cannot be undone.`}
+          confirmText="Delete Patient"
+          onConfirm={() => deleteMutation.mutate(patientToDelete.id)}
+          onCancel={() => setPatientToDelete(null)}
+        />
       )}
     </div>
   );

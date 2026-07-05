@@ -5,18 +5,31 @@ using OpdManager.Application.Services.Interfaces;
 using OpdManager.Domain.Entities;
 using OpdManager.Domain.Enums;
 
+using OpdManager.Api.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace OpdManager.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+/// <summary>
+/// Provides REST endpoints for booking, viewing, and managing patient appointments.
+/// </summary>
 public class AppointmentsController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IHubContext<QueueHub> _queueHub;
+    private readonly IHubContext<DashboardHub> _dashboardHub;
 
-    public AppointmentsController(IAppointmentService appointmentService)
+    public AppointmentsController(
+        IAppointmentService appointmentService, 
+        IHubContext<QueueHub> queueHub,
+        IHubContext<DashboardHub> dashboardHub)
     {
         _appointmentService = appointmentService;
+        _queueHub = queueHub;
+        _dashboardHub = dashboardHub;
     }
 
     [HttpGet("by-date")]
@@ -67,6 +80,8 @@ public class AppointmentsController : ControllerBase
         var (success, error) = await _appointmentService.BookAsync(appointment);
         if (!success) return BadRequest(new { message = error });
 
+        await _queueHub.Clients.All.SendAsync("QueueUpdated");
+        await _dashboardHub.Clients.All.SendAsync("DashboardUpdated");
         return Ok(new { message = "Appointment booked successfully.", appointmentId = appointment.Id });
     }
 
@@ -85,6 +100,8 @@ public class AppointmentsController : ControllerBase
         var (success, error) = await _appointmentService.BookAsync(appointment);
         if (!success) return BadRequest(new { message = error });
 
+        await _queueHub.Clients.All.SendAsync("QueueUpdated");
+        await _dashboardHub.Clients.All.SendAsync("DashboardUpdated");
         return Ok(new { message = "Appointment updated successfully." });
     }
 
@@ -93,6 +110,9 @@ public class AppointmentsController : ControllerBase
     {
         var result = await _appointmentService.CancelAsync(id);
         if (!result) return NotFound();
+        
+        await _queueHub.Clients.All.SendAsync("QueueUpdated");
+        await _dashboardHub.Clients.All.SendAsync("DashboardUpdated");
         return Ok(new { message = "Appointment cancelled." });
     }
 
@@ -100,6 +120,8 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> UpdateStatus(int id, [FromQuery] AppointmentStatus status)
     {
         await _appointmentService.UpdateStatusAsync(id, status);
+        await _queueHub.Clients.All.SendAsync("QueueUpdated");
+        await _dashboardHub.Clients.All.SendAsync("DashboardUpdated");
         return Ok(new { message = "Status updated." });
     }
 
@@ -107,6 +129,8 @@ public class AppointmentsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         await _appointmentService.DeleteAsync(id);
+        await _queueHub.Clients.All.SendAsync("QueueUpdated");
+        await _dashboardHub.Clients.All.SendAsync("DashboardUpdated");
         return NoContent();
     }
 

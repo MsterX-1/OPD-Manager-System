@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
-import { LayoutDashboard, Users, UserSquare2, CalendarDays, Activity, AlertCircle, FileBarChart, Settings, LogOut, UserCog, PieChart } from 'lucide-react';
+import { LayoutDashboard, Users, UserSquare2, CalendarDays, Activity, AlertCircle, FileBarChart, Settings, LogOut, UserCog, PieChart, Stethoscope, Building2, ClipboardList } from 'lucide-react';
 
 export default function Layout() {
   const user = useAuthStore(state => state.user);
@@ -17,7 +17,10 @@ export default function Layout() {
     { to: "/queue", icon: Activity, label: "Queue Monitor" },
     { to: "/appointments", icon: CalendarDays, label: "Appointments" },
     { to: "/patients", icon: Users, label: "Patients" },
+    { to: "/doctor-portal", icon: Stethoscope, label: "My Queue", role: "Doctor" },
+    { to: "/department-portal", icon: ClipboardList, label: "Dept Portal", role: "DepartmentStaff" },
     { to: "/doctors", icon: UserSquare2, label: "Doctors", role: "Admin" },
+    { to: "/departments", icon: Building2, label: "Departments", role: "Admin" },
     { to: "/issues", icon: AlertCircle, label: "Issues" },
     { to: "/reports", icon: FileBarChart, label: "Reports" },
     { to: "/analytics", icon: PieChart, label: "Analytics", role: "Admin" },
@@ -50,6 +53,16 @@ export default function Layout() {
           <div style={{ marginTop: '0.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
             Welcome, {user?.fullName?.split(' ')[0] ?? 'User'}
           </div>
+          {user?.role && user.role !== 'Staff' && (
+            <div style={{ 
+              marginTop: '0.25rem', 
+              fontSize: '0.75rem', 
+              color: 'var(--accent-primary)',
+              opacity: 0.8
+            }}>
+              {user.role === 'DepartmentStaff' ? 'Department Staff' : user.role}
+            </div>
+          )}
         </div>
 
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
