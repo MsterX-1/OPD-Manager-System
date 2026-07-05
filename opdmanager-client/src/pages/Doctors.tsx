@@ -73,6 +73,7 @@ export default function Doctors() {
     onSuccess: () => {
       toast.success('Doctor created successfully');
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
+      queryClient.invalidateQueries({ queryKey: ['activeDoctors'] });
       closeModal();
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create doctor')
@@ -83,6 +84,7 @@ export default function Doctors() {
     onSuccess: () => {
       toast.success('Doctor updated successfully');
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
+      queryClient.invalidateQueries({ queryKey: ['activeDoctors'] });
       closeModal();
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update doctor')
@@ -93,6 +95,7 @@ export default function Doctors() {
     onSuccess: () => {
       toast.success('Doctor deleted');
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
+      queryClient.invalidateQueries({ queryKey: ['activeDoctors'] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete doctor (may have appointments)')
   });
@@ -102,6 +105,7 @@ export default function Doctors() {
     onSuccess: () => {
       toast.success('Doctor status toggled');
       queryClient.invalidateQueries({ queryKey: ['doctors'] });
+      queryClient.invalidateQueries({ queryKey: ['activeDoctors'] });
     }
   });
 

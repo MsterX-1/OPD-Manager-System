@@ -515,7 +515,10 @@ export default function Appointments() {
                     >
                       <option value="">-- Select Date --</option>
                       {getNextAvailableDates(selectedDoctor).map((d: Date) => {
-                        const dateStr = d.toISOString().split('T')[0];
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const dateStr = `${y}-${m}-${day}`;
                         const displayStr = `${FULL_DAYS[d.getDay()]}, ${d.toLocaleDateString()}`;
                         return <option key={dateStr} value={dateStr}>{displayStr}</option>;
                       })}

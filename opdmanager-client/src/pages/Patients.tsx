@@ -64,6 +64,7 @@ export default function Patients() {
     onSuccess: () => {
       toast.success('Patient created successfully');
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['allPatients'] });
       closeModal();
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create patient')
@@ -74,6 +75,7 @@ export default function Patients() {
     onSuccess: () => {
       toast.success('Patient updated successfully');
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['allPatients'] });
       closeModal();
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to update patient')
@@ -84,6 +86,7 @@ export default function Patients() {
     onSuccess: () => {
       toast.success('Patient deleted');
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['allPatients'] });
     },
     onError: () => toast.error('Failed to delete patient. Ensure they have no appointments.')
   });
