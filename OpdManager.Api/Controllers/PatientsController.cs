@@ -9,6 +9,9 @@ namespace OpdManager.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+/// <summary>
+/// Provides REST endpoints for patient management, including creation, updates, and history retrieval.
+/// </summary>
 public class PatientsController : ControllerBase
 {
     private readonly IPatientService _patientService;
@@ -20,6 +23,12 @@ public class PatientsController : ControllerBase
         _appointmentService = appointmentService;
     }
 
+    /// <summary>
+    /// Retrieves a paginated list of all patients.
+    /// </summary>
+    /// <param name="page">The page number.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <returns>A paginated list of patients.</returns>
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -42,6 +51,11 @@ public class PatientsController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Retrieves a specific patient by ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the patient.</param>
+    /// <returns>The patient details if found, otherwise NotFound.</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -50,6 +64,13 @@ public class PatientsController : ControllerBase
         return Ok(patient);
     }
 
+    /// <summary>
+    /// Searches for patients based on a search term (e.g., name or phone).
+    /// </summary>
+    /// <param name="term">The search query.</param>
+    /// <param name="page">The page number.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <returns>A paginated list of matching patients.</returns>
     [HttpGet("search")]
     public async Task<IActionResult> Search([FromQuery] string term, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -72,6 +93,13 @@ public class PatientsController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Retrieves the appointment history for a specific patient.
+    /// </summary>
+    /// <param name="id">The patient ID.</param>
+    /// <param name="page">The page number.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <returns>A paginated list of the patient's past appointments.</returns>
     [HttpGet("{id}/history")]
     public async Task<IActionResult> GetHistory(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -79,6 +107,11 @@ public class PatientsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates a new patient record.
+    /// </summary>
+    /// <param name="request">The patient creation payload.</param>
+    /// <returns>The created patient object.</returns>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PatientRequest request)
     {
@@ -98,6 +131,12 @@ public class PatientsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = patient.Id }, patient);
     }
 
+    /// <summary>
+    /// Updates an existing patient record.
+    /// </summary>
+    /// <param name="id">The ID of the patient to update.</param>
+    /// <param name="request">The updated patient payload.</param>
+    /// <returns>The updated patient if successful, otherwise NotFound.</returns>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] PatientRequest request)
     {
@@ -116,7 +155,13 @@ public class PatientsController : ControllerBase
         return Ok(patient);
     }
 
+    /// <summary>
+    /// Deletes a patient from the system. Ensure the patient has no associated records before deleting.
+    /// </summary>
+    /// <param name="id">The patient ID to delete.</param>
+    /// <returns>NoContent if successful.</returns>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         await _patientService.DeleteAsync(id);

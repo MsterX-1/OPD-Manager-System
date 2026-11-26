@@ -15,6 +15,9 @@ namespace OpdManager.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+/// <summary>
+/// Handles user authentication, token issuance, and token refreshing.
+/// </summary>
 public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -31,6 +34,11 @@ public class AuthController : ControllerBase
         _db = db;
     }
 
+    /// <summary>
+    /// Authenticates a user and issues JWT access and refresh tokens.
+    /// </summary>
+    /// <param name="request">The login credentials.</param>
+    /// <returns>User details and sets HTTP-only cookies with the tokens.</returns>
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -51,6 +59,10 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Logs out the user by clearing the authentication cookies.
+    /// </summary>
+    /// <returns>A success message.</returns>
     [HttpPost("logout")]
     public IActionResult Logout()
     {
@@ -59,6 +71,10 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Logged out successfully" });
     }
 
+    /// <summary>
+    /// Refreshes an expired access token using a valid refresh token.
+    /// </summary>
+    /// <returns>New user details and updated HTTP-only cookies.</returns>
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> Refresh()
@@ -90,6 +106,10 @@ public class AuthController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Retrieves the current authenticated user's profile information.
+    /// </summary>
+    /// <returns>User details including roles and assigned departments/doctors.</returns>
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me()

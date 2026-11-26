@@ -5,6 +5,7 @@ import * as signalR from '@microsoft/signalr';
 import { Stethoscope, Eye, ArrowRight, Clock } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 /**
  * DoctorPortal Component
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
  * Synchronized via SignalR to instantly reflect front-desk check-ins.
  */
 export default function DoctorPortal() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
@@ -69,10 +71,11 @@ export default function DoctorPortal() {
     return Math.floor((end.getTime() - start.getTime()) / 60000);
   };
 
-  const columns = [
-    { id: 'Waiting', title: 'Waiting', color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.05)' },
-    { id: 'InProgress', title: 'In Progress', color: 'var(--accent-primary)', bg: 'rgba(59, 130, 246, 0.05)' },
-    { id: 'Done', title: 'Completed', color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.05)' }
+    const columns = [
+    { id: 'Waiting', title: t('Waiting'), color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.05)' },
+    { id: 'InProgress', title: t('In Progress'), color: 'var(--accent-primary)', bg: 'rgba(59, 130, 246, 0.05)' },
+    { id: 'OnHold', title: t('On Hold / Lab'), color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.05)' },
+    { id: 'Done', title: t('Completed'), color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.05)' }
   ];
 
   const pendingReferrals = referrals?.received?.filter((r: any) => r.status === 'Pending') || [];
@@ -82,13 +85,13 @@ export default function DoctorPortal() {
       <div className="page-header">
         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Stethoscope size={28} />
-          My Queue
+          {t('My Queue')}
         </h1>
       </div>
 
       {/* Pending referrals to me */}
       {pendingReferrals.length > 0 && (
-        <div className="glass-panel" style={{ padding: '1rem', borderLeft: '4px solid var(--accent-secondary)' }}>
+        <div className="surface" style={{ padding: '1rem', borderLeft: '4px solid var(--accent-secondary)' }}>
           <h3 style={{ marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--accent-secondary)' }}>
             📥 Incoming Referrals ({pendingReferrals.length})
           </h3>
@@ -116,9 +119,7 @@ export default function DoctorPortal() {
       )}
 
       {/* Kanban Board — same pattern as QueueMonitor but scoped to me */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
+      <div className="grid grid-cols-1 md:grid-cols-4" style={{ 
         gap: '1.5rem',
         flex: 1,
         minHeight: 0
@@ -127,7 +128,7 @@ export default function DoctorPortal() {
           const items = queueItems.filter((q: any) => q.status === col.id);
           
           return (
-            <div key={col.id} className="glass-panel" style={{ 
+            <div key={col.id} className="surface" style={{ 
               display: 'flex', 
               flexDirection: 'column',
               background: col.bg,
@@ -147,9 +148,16 @@ export default function DoctorPortal() {
                   <div key={item.id} className="card" style={{ padding: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
                       <span style={{ fontSize: '1.25rem', fontWeight: 700, color: col.color, background: 'var(--bg-secondary)', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>#{item.queueNumber}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Clock size={12} /> {getWaitTime(item.checkInTime, item.startTime)} min
-                      </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Clock size={12} /> {getWaitTime(item.checkInTime, item.startTime)} min wait
+                        </span>
+                        {(item.status === 'InProgress' || item.status === 'Done') && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                            {item.examinationMinutes ?? ((item.accumulatedExaminationSeconds ? Math.floor(item.accumulatedExaminationSeconds / 60) : 0) + (item.startTime ? getWaitTime(item.startTime, null) : 0))} min exam
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '0.75rem' }}>{item.patientName}</div>
                     
@@ -174,12 +182,30 @@ export default function DoctorPortal() {
                           </button>
                           <button 
                             className="btn" 
+                            style={{ padding: '0.5rem', fontSize: '0.85rem', background: 'var(--danger)', color: 'white', border: 'none' }}
+                            title="Send to Lab (Hold)"
+                            onClick={() => statusMutation.mutate({ id: item.id, status: 'OnHold' })}
+                          >
+                            Hold
+                          </button>
+                          <button 
+                            className="btn" 
                             style={{ padding: '0.5rem', background: 'var(--success)', color: 'white', border: 'none', fontSize: '0.85rem' }}
+                            title="Complete"
                             onClick={() => statusMutation.mutate({ id: item.id, status: 'Done' })}
                           >
                             ✓
                           </button>
                         </>
+                      )}
+                      {col.id === 'OnHold' && (
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem' }}
+                          onClick={() => statusMutation.mutate({ id: item.id, status: 'Waiting' })}
+                        >
+                          <ArrowRight size={14} /> Re-Queue
+                        </button>
                       )}
                       {col.id === 'Done' && item.appointmentId && (
                         <button 

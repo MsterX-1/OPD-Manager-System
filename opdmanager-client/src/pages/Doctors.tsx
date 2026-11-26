@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X, Check, XCircle, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ConfirmModal';
 
 interface DoctorSchedule {
@@ -41,6 +42,7 @@ const format12Hour = (time24: string) => {
 };
 
 export default function Doctors() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
@@ -177,17 +179,17 @@ export default function Doctors() {
   return (
     <div>
       <div className="page-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="page-title">Doctors & Schedules</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <h1 className="page-title">{t('Doctors & Schedules')}</h1>
           <button className="btn btn-primary" onClick={openNew}>
-            <Plus size={18} /> Add Doctor
+            <Plus size={18} /> {t('Add Doctor')}
           </button>
         </div>
         <div style={{ position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder="Search doctors by name, specialty, or phone number..." 
+            placeholder={t('Search doctors by name, specialty, or phone number...')} 
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             style={{ 
@@ -203,19 +205,19 @@ export default function Doctors() {
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Specialty</th>
-              <th>Phone</th>
-              <th>Schedule</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('Name')}</th>
+              <th>{t('Specialty')}</th>
+              <th>{t('Phone')}</th>
+              <th>{t('Schedule')}</th>
+              <th>{t('Status')}</th>
+              <th style={{ textAlign: 'right' }}>{t('Actions')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>{t('Loading...')}</td></tr>
             ) : filteredDoctors?.length === 0 ? (
-              <tr><td colSpan={6} style={{ textAlign: 'center' }}>No doctors found.</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>{t('No doctors found.')}</td></tr>
             ) : filteredDoctors?.map((d) => (
               <tr key={d.id}>
                 <td style={{ fontWeight: 500 }}>Dr. {d.name}</td>
@@ -241,18 +243,18 @@ export default function Doctors() {
                     style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                   >
                     {d.isActive ? (
-                      <span className="badge badge-success"><Check size={14} style={{ marginRight: '4px' }} /> Active</span>
+                      <span className="badge badge-success"><Check size={14} style={{ marginRight: '4px' }} /> {t('Active')}</span>
                     ) : (
-                      <span className="badge badge-danger"><XCircle size={14} style={{ marginRight: '4px' }} /> Inactive</span>
+                      <span className="badge badge-danger"><XCircle size={14} style={{ marginRight: '4px' }} /> {t('Inactive')}</span>
                     )}
                   </button>
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem' }} onClick={() => openEdit(d)}>
+                    <button aria-label={t('Edit Doctor')} className="btn btn-secondary" style={{ padding: '0.35rem 0.5rem' }} onClick={() => openEdit(d)}>
                       <Edit2 size={16} />
                     </button>
-                    <button className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setDoctorToDelete(d)}>
+                    <button aria-label={t('Delete Doctor')} className="btn btn-danger" style={{ padding: '0.35rem 0.5rem' }} onClick={() => setDoctorToDelete(d)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -270,36 +272,36 @@ export default function Doctors() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
           padding: '2rem'
         }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem' }}>{editingDoctor ? 'Edit Doctor' : 'New Doctor'}</h2>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <h2 style={{ fontSize: '1.25rem' }}>{editingDoctor ? t('Edit Doctor') : t('New Doctor')}</h2>
+              <button aria-label={t('Close Modal')} onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div className="form-group">
-                  <label>Full Name</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="John Doe" />
+                  <label>{t('Full Name')}</label>
+                  <input required minLength={3} maxLength={100} type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="John Doe" />
                 </div>
                 <div className="form-group">
-                  <label>Specialty</label>
-                  <input required type="text" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="Cardiology" />
+                  <label>{t('Specialty')}</label>
+                  <input required minLength={2} maxLength={100} type="text" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})} placeholder="Cardiology" />
                 </div>
                 <div className="form-group">
-                  <label>Phone Number</label>
-                  <input type="text" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
+                  <label>{t('Phone Number')}</label>
+                  <input type="tel" pattern="[0-9\+\-\s\(\)]+" value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} placeholder="+1 234 567 8900" />
                 </div>
                 <div className="form-group">
-                  <label>Avg. Examination (Minutes)</label>
-                  <input type="number" min="1" value={formData.averageExaminationMinutes || ''} onChange={e => setFormData({...formData, averageExaminationMinutes: parseInt(e.target.value) || null})} />
+                  <label>{t('Avg. Examination (Minutes)')}</label>
+                  <input required type="number" min="1" max="120" value={formData.averageExaminationMinutes || ''} onChange={e => setFormData({...formData, averageExaminationMinutes: parseInt(e.target.value) || null})} />
                 </div>
               </div>
 
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
-                Weekly Schedule
+                {t('Weekly Schedule')}
               </h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
@@ -344,9 +346,9 @@ export default function Doctors() {
 
       {doctorToDelete && (
         <ConfirmModal
-          title="Delete Doctor"
-          message={`Are you sure you want to delete Dr. ${doctorToDelete.name}? This action cannot be undone and may fail if they have appointments.`}
-          confirmText="Delete Doctor"
+          title={t('Delete Doctor')}
+          message={t(`Are you sure you want to delete Dr.`) + ` ${doctorToDelete.name}? ` + t(`This action cannot be undone and may fail if they have appointments.`)}
+          confirmText={t('Delete Doctor')}
           onConfirm={() => deleteMutation.mutate(doctorToDelete.id)}
           onCancel={() => setDoctorToDelete(null)}
         />

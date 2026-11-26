@@ -32,6 +32,15 @@ public class AppointmentsController : ControllerBase
         _dashboardHub = dashboardHub;
     }
 
+    /// <summary>
+    /// Retrieves a paginated list of appointments for a specific date.
+    /// Optionally filters by doctor ID.
+    /// </summary>
+    /// <param name="date">The date of the appointments.</param>
+    /// <param name="page">The page number for pagination.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <param name="doctorId">Optional doctor ID to filter appointments.</param>
+    /// <returns>A paginated list of appointments.</returns>
     [HttpGet("by-date")]
     public async Task<IActionResult> GetByDate(
         [FromQuery] DateTime date,
@@ -39,6 +48,14 @@ public class AppointmentsController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] int doctorId = 0)
     {
+        if (User.IsInRole("Doctor"))
+        {
+            var doctorIdClaim = User.Claims.FirstOrDefault(c => c.Type == "DoctorId")?.Value;
+            if (int.TryParse(doctorIdClaim, out int did))
+            {
+                doctorId = did;
+            }
+        }
         var result = await _appointmentService.GetByDatePagedAsync(date, page, pageSize, doctorId);
         return Ok(result);
     }
@@ -52,11 +69,24 @@ public class AppointmentsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        if (User.IsInRole("Doctor"))
+        {
+            var doctorIdClaim = User.Claims.FirstOrDefault(c => c.Type == "DoctorId")?.Value;
+            if (int.TryParse(doctorIdClaim, out int did))
+            {
+                doctorId = did;
+            }
+        }
         var result = await _appointmentService.SearchPagedAsync(
             patientName, doctorId, fromDate, toDate, page, pageSize);
         return Ok(result);
     }
 
+    /// <summary>
+    /// Retrieves a specific appointment by its unique identifier.
+    /// </summary>
+    /// <param name="id">The appointment ID.</param>
+    /// <returns>The appointment details if found, otherwise NotFound.</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -65,6 +95,12 @@ public class AppointmentsController : ControllerBase
         return Ok(appointment);
     }
 
+    /// <summary>
+    /// Books a new appointment for a patient with a specific doctor.
+    /// Validates availability and broadcasts an update via SignalR if successful.
+    /// </summary>
+    /// <param name="request">The booking request payload.</param>
+    /// <returns>Success message and appointment ID, or BadRequest with error message.</returns>
     [HttpPost]
     public async Task<IActionResult> Book([FromBody] BookAppointmentRequest request)
     {
@@ -105,6 +141,12 @@ public class AppointmentsController : ControllerBase
         return Ok(new { message = "Appointment updated successfully." });
     }
 
+    /// <summary>
+    /// Cancels an existing appointment.
+    /// Notifies connected clients of the queue change.
+    /// </summary>
+    /// <param name="id">The appointment ID to cancel.</param>
+    /// <returns>Ok if cancelled successfully, otherwise NotFound.</returns>
     [HttpPatch("{id}/cancel")]
     public async Task<IActionResult> Cancel(int id)
     {
@@ -126,6 +168,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         await _appointmentService.DeleteAsync(id);

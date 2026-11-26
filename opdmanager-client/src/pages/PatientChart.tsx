@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Stethoscope, FileText, Share2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 
 export default function PatientChart() {
+  const { t } = useTranslation();
   const { patientId } = useParams();
   const navigate = useNavigate();
 
@@ -27,12 +29,12 @@ export default function PatientChart() {
           </button>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileText size={28} />
-            Patient Chart
+            {t('Patient Chart')}
           </h1>
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: '1.5rem' }}>
+      <div className="surface" style={{ padding: '1.5rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>{chart.patientName}</h2>
         {chart.knownAllergies && (
           <div style={{ color: 'var(--danger)', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.5rem' }}>
@@ -41,22 +43,22 @@ export default function PatientChart() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="chart-layout">
         {/* Medical Records */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-primary)' }}>
             <Stethoscope size={20} />
-            Encounter History
+            {t('Encounter History')}
           </h3>
           
           {chart.medicalRecords?.length === 0 && (
-            <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No medical records found.
+            <div className="surface" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              {t('No medical records found.')}
             </div>
           )}
 
           {chart.medicalRecords?.map((record: any) => (
-            <div key={record.id} className="glass-panel" style={{ padding: '1.5rem' }}>
+            <div key={record.id} className="surface" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
                 <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>
                   {new Date(record.createdAt).toLocaleDateString()}
@@ -117,17 +119,17 @@ export default function PatientChart() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-secondary)' }}>
             <Share2 size={20} />
-            Referrals & Tests
+            {t('Referrals & Tests')}
           </h3>
 
           {chart.referrals?.length === 0 && (
-            <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No referrals found.
+            <div className="surface" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              {t('No referrals found.')}
             </div>
           )}
 
           {chart.referrals?.map((ref: any) => (
-            <div key={ref.id} className="glass-panel" style={{ padding: '1.25rem', borderLeft: `3px solid ${ref.status === 'Completed' ? 'var(--success)' : 'var(--warning)'}` }}>
+            <div key={ref.id} className="surface" style={{ padding: '1.25rem', border: '1px solid var(--border-color)', borderLeft: `3px solid ${ref.status === 'Completed' ? 'var(--success)' : 'var(--warning)'}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ fontWeight: 600 }}>
                   {ref.referralType === 'ToDepartment' ? ref.targetDepartmentName : `Dr. ${ref.targetDoctorName}`}
@@ -157,6 +159,19 @@ export default function PatientChart() {
           ))}
         </div>
       </div>
+      <style>{`
+        .chart-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+          .chart-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

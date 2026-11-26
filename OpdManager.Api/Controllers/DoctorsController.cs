@@ -22,6 +22,11 @@ public class DoctorsController : ControllerBase
         _doctorService = doctorService;
     }
 
+    /// <summary>
+    /// Retrieves all doctors, including inactive ones.
+    /// Restricted to Admin role.
+    /// </summary>
+    /// <returns>A list of all doctors.</returns>
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll()
@@ -30,6 +35,10 @@ public class DoctorsController : ControllerBase
         return Ok(doctors.Select(MapToResponse));
     }
 
+    /// <summary>
+    /// Retrieves a list of active doctors.
+    /// </summary>
+    /// <returns>A list of active doctors.</returns>
     [HttpGet("active")]
     public async Task<IActionResult> GetActive()
     {
@@ -37,6 +46,11 @@ public class DoctorsController : ControllerBase
         return Ok(doctors.Select(MapToResponse));
     }
 
+    /// <summary>
+    /// Retrieves detailed information for a specific doctor.
+    /// </summary>
+    /// <param name="id">The doctor ID.</param>
+    /// <returns>The doctor details if found, otherwise NotFound.</returns>
     [HttpGet("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetById(int id)
@@ -46,30 +60,12 @@ public class DoctorsController : ControllerBase
         return Ok(MapToResponse(doctor));
     }
 
-    [HttpGet("me/queue")]
-    [Authorize(Roles = "Doctor")]
-    public async Task<IActionResult> GetMyQueue([FromServices] IQueueService queueService)
-    {
-        var claim = User.FindFirstValue("DoctorId");
-        if (!int.TryParse(claim, out var doctorId)) return Forbid();
 
-        var queue = await queueService.GetTodayQueueAsync();
-        return Ok(queue.Where(q => q.DoctorId == doctorId));
-    }
-
-    [HttpGet("me/referrals")]
-    [Authorize(Roles = "Doctor")]
-    public async Task<IActionResult> GetMyReferrals([FromServices] IReferralService referralService)
-    {
-        var claim = User.FindFirstValue("DoctorId");
-        if (!int.TryParse(claim, out var doctorId)) return Forbid();
-
-        var sent = await referralService.GetByReferringDoctorAsync(doctorId);
-        var received = await referralService.GetByTargetDoctorAsync(doctorId);
-
-        return Ok(new { sent, received });
-    }
-
+    /// <summary>
+    /// Creates a new doctor profile and optionally assigns a schedule.
+    /// </summary>
+    /// <param name="request">The doctor creation payload.</param>
+    /// <returns>The created doctor profile.</returns>
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] DoctorRequest request)
@@ -101,6 +97,12 @@ public class DoctorsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = doctor.Id }, MapToResponse(doctor));
     }
 
+    /// <summary>
+    /// Updates an existing doctor's profile and schedule.
+    /// </summary>
+    /// <param name="id">The doctor ID to update.</param>
+    /// <param name="request">The updated payload.</param>
+    /// <returns>The updated doctor profile.</returns>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] DoctorRequest request)
@@ -141,6 +143,11 @@ public class DoctorsController : ControllerBase
         return Ok(MapToResponse(doctor));
     }
 
+    /// <summary>
+    /// Deletes a doctor from the system.
+    /// </summary>
+    /// <param name="id">The doctor ID to delete.</param>
+    /// <returns>NoContent if successful, BadRequest if the doctor has dependencies.</returns>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)

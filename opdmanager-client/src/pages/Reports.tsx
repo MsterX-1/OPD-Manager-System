@@ -3,8 +3,10 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 export default function Reports() {
+  const { t } = useTranslation();
   const user = useAuthStore(state => state.user);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
@@ -44,58 +46,58 @@ export default function Reports() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success('Report downloaded successfully');
+      toast.success(t('Report downloaded successfully'));
     } catch (err) {
-      toast.error('Failed to download report');
+      toast.error(t('Failed to download report'));
     }
   };
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Reports</h1>
+        <h1 className="page-title">{t('Reports')}</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        <div className="card">
-          <h3 style={{ marginBottom: '1rem' }}>Appointments Report</h3>
+        <div className="surface" style={{ padding: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1rem' }}>{t('Appointments Report')}</h3>
           <div className="form-group">
-            <label>Date</label>
+            <label>{t('Date')}</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-            <button className="btn btn-primary" onClick={() => downloadReport('appointments', 'pdf')}>Download PDF</button>
-            <button className="btn btn-secondary" onClick={() => downloadReport('appointments', 'excel')}>Download Excel</button>
+            <button className="btn btn-primary" onClick={() => downloadReport('appointments', 'pdf')}>{t('Download PDF')}</button>
+            <button className="btn btn-secondary" onClick={() => downloadReport('appointments', 'excel')}>{t('Download Excel')}</button>
           </div>
         </div>
 
         {user?.role === 'Admin' && (
-          <div className="card">
-            <h3 style={{ marginBottom: '1rem' }}>Doctor Performance</h3>
+          <div className="surface" style={{ padding: '1.5rem' }}>
+            <h3 style={{ marginBottom: '1rem' }}>{t('Doctor Performance')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
                 <div className="form-group">
-                  <label>From Date</label>
+                  <label>{t('From Date')}</label>
                   <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="form-control" />
                 </div>
                 <div className="form-group">
-                  <label>To Date</label>
+                  <label>{t('To Date')}</label>
                   <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="form-control" />
                 </div>
               </div>
               <div className="form-group">
-                <label>Filter by Doctor (Optional)</label>
+                <label>{t('Filter by Doctor (Optional)')}</label>
                 <select value={selectedDoctorId} onChange={e => setSelectedDoctorId(e.target.value)} className="form-control">
-                  <option value="">All Doctors</option>
+                  <option value="">{t('All Doctors')}</option>
                   {doctors.map((d: any) => (
-                    <option key={d.id} value={d.id}>Dr. {d.name}</option>
+                    <option key={d.id} value={d.id}>{t('Dr.')} {d.name}</option>
                   ))}
                 </select>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-              <button className="btn btn-primary" onClick={() => downloadReport('performance', 'pdf')}>Download PDF</button>
-              <button className="btn btn-secondary" onClick={() => downloadReport('performance', 'excel')}>Download Excel</button>
+              <button className="btn btn-primary" onClick={() => downloadReport('performance', 'pdf')}>{t('Download PDF')}</button>
+              <button className="btn btn-secondary" onClick={() => downloadReport('performance', 'excel')}>{t('Download Excel')}</button>
             </div>
           </div>
         )}

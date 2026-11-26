@@ -28,6 +28,11 @@ public class QueueService : IQueueService
         var appointment = await _uow.Appointments.GetByIdAsync(appointmentId);
         if (appointment == null) throw new InvalidOperationException("Appointment not found.");
 
+        if (appointment.AppointmentDate.Date != DateTime.UtcNow.Date)
+        {
+            throw new InvalidOperationException($"Patient can only be checked in on the day of their appointment ({appointment.AppointmentDate:d}).");
+        }
+
         var nextNumber = await _uow.Queue.GetNextQueueNumberAsync(appointment.DoctorId);
         var entry = new QueueEntry
         {
@@ -53,10 +58,23 @@ public class QueueService : IQueueService
         var entry = await _uow.Queue.GetByIdAsync(queueEntryId);
         if (entry is null) return;
 
+        if (entry.Status == QueueStatus.Done || entry.Status == QueueStatus.Skipped)
+        {
+            throw new InvalidOperationException("Cannot change the status of a queue entry that is already Done or Skipped.");
+        }
+
+        // Accumulate examination time if leaving InProgress
+        if (entry.Status == QueueStatus.InProgress && status != QueueStatus.InProgress && entry.StartTime.HasValue)
+        {
+            entry.AccumulatedExaminationSeconds += (int)(DateTime.UtcNow - entry.StartTime.Value).TotalSeconds;
+        }
+
         entry.Status = status;
 
         // Update times
-        if (status == QueueStatus.InProgress)
+        if (status == QueueStatus.Waiting || status == QueueStatus.OnHold)
+            entry.StartTime = null; // Re-queuing or holding clears active start time
+        else if (status == QueueStatus.InProgress && !entry.StartTime.HasValue)
             entry.StartTime = DateTime.UtcNow;
         else if (status == QueueStatus.Done || status == QueueStatus.Skipped)
             entry.EndTime = DateTime.UtcNow;
@@ -69,10 +87,12 @@ public class QueueService : IQueueService
         {
             appointment.Status = status switch
             {
+                QueueStatus.Waiting => AppointmentStatus.Scheduled,
                 QueueStatus.InProgress => AppointmentStatus.InProgress,
                 QueueStatus.Done => AppointmentStatus.Completed,
                 QueueStatus.Skipped => AppointmentStatus.NoShow,
-                _ => appointment.Status // Waiting → no change
+                QueueStatus.OnHold => AppointmentStatus.OnHold,
+                _ => appointment.Status
             };
             _uow.Appointments.Update(appointment);
         }
@@ -80,12 +100,22 @@ public class QueueService : IQueueService
         await _uow.SaveChangesAsync();
     }
 
-    public async Task<DashboardDto> GetDashboardStatsAsync()
+    public async Task<DashboardDto> GetDashboardStatsAsync(int? doctorId = null)
     {
-        var todayQueue = (await _uow.Queue.GetTodayQueueAsync()).ToList();
-        var todayAppointments = (await _uow.Appointments.GetByDateAsync(DateTime.Today)).ToList();
+        var todayQueueQuery = await _uow.Queue.GetTodayQueueAsync();
+        var todayQueue = todayQueueQuery.ToList();
+
+        var todayAppointmentsQuery = await _uow.Appointments.GetByDateAsync(DateTime.Today);
+        var todayAppointments = todayAppointmentsQuery.ToList();
+        
         var activeDoctors = (await _uow.Doctors.GetActiveAsync()).ToList();
         var openIssues = (await _uow.Issues.GetByStatusAsync(IssueStatus.Open)).ToList();
+
+        if (doctorId.HasValue)
+        {
+            todayQueue = todayQueue.Where(q => q.Appointment?.DoctorId == doctorId.Value).ToList();
+            todayAppointments = todayAppointments.Where(a => a.DoctorId == doctorId.Value).ToList();
+        }
 
         var activeQueue = todayQueue
             .Where(q => q.Status != QueueStatus.Skipped)
@@ -96,7 +126,7 @@ public class QueueService : IQueueService
             .ToList();
 
         // Today's doctor performance
-        var performance = await GetDoctorPerformanceAsync(DateTime.Today, DateTime.Today);
+        var performance = await GetDoctorPerformanceAsync(DateTime.Today, DateTime.Today, doctorId);
 
         return new DashboardDto
         {
@@ -165,6 +195,7 @@ public class QueueService : IQueueService
         StartTime = q.StartTime,
         EndTime = q.EndTime,
         ExaminationMinutes = q.ExaminationMinutes,
+        AccumulatedExaminationSeconds = q.AccumulatedExaminationSeconds,
         WaitingMinutes = q.StartTime.HasValue
             ? (int)(q.StartTime.Value - q.CheckInTime).TotalMinutes
             : (int)(DateTime.UtcNow - q.CheckInTime).TotalMinutes

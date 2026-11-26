@@ -5,7 +5,9 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Search, Plus, X, Edit2, Trash2, Calendar } from 'lucide-react';
 import Select from 'react-select';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuthStore } from '../store';
 
 const customStyles = {
   control: (base: any, state: any) => ({
@@ -91,6 +93,8 @@ const isWorkingDay = (dateStr: string, doctor: any) => {
  * Allows receptionists to book, cancel, or check-in scheduled patient appointments.
  */
 export default function Appointments() {
+  const { t } = useTranslation();
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<'date' | 'search'>('date');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -198,6 +202,7 @@ export default function Appointments() {
     onSuccess: () => {
       toast.success('Patient checked in');
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['todayQueue'] });
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Failed to check in');
@@ -312,9 +317,9 @@ export default function Appointments() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Appointments</h1>
+        <h1 className="page-title">{t('Appointments')}</h1>
         
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           
           <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', padding: '0.25rem' }}>
             <button 
@@ -354,7 +359,7 @@ export default function Appointments() {
           )}
           
           <button className="btn btn-primary" onClick={openNew}>
-            <Plus size={18} /> Book Appointment
+            <Plus size={18} /> {t('Book Appointment')}
           </button>
         </div>
       </div>
@@ -389,22 +394,27 @@ export default function Appointments() {
                   <td style={{ fontWeight: 500 }}>{a.patientName}</td>
                   <td>Dr. {a.doctorName} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({a.doctorSpecialty})</span></td>
                   <td>
-                    <span className={`badge badge-${a.status === 'Scheduled' ? 'info' : a.status === 'Completed' ? 'success' : a.status === 'Cancelled' ? 'danger' : 'warning'}`}>
-                      {a.status}
+                    <span className={`badge badge-${a.status === 'Scheduled' ? 'info' : a.status === 'Completed' ? 'success' : a.status === 'Cancelled' ? 'danger' : a.status === 'NoShow' ? 'neutral' : 'warning'}`}>
+                      {a.status === 'NoShow' ? 'No Show' : a.status}
                     </span>
                   </td>
                   <td>{a.queueNumber ? `#${a.queueNumber}` : '-'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      {a.status === 'Scheduled' && (
+                      {a.status === 'Scheduled' && !a.queueNumber && (
                         <>
-                          <button 
-                            className="btn btn-primary" 
-                            style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
-                            onClick={() => checkInMutation.mutate(a.id)}
-                          >
-                            Check-in
-                          </button>
+                          {(() => {
+                            const isToday = a.appointmentDate.split('T')[0] === new Date().toISOString().split('T')[0];
+                            return isToday && (
+                              <button 
+                                className="btn btn-primary" 
+                                style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
+                                onClick={() => checkInMutation.mutate(a.id)}
+                              >
+                                Check-in
+                              </button>
+                            );
+                          })()}
                           <button 
                             className="btn btn-secondary" 
                             style={{ padding: '0.35rem 0.5rem' }}
@@ -424,14 +434,16 @@ export default function Appointments() {
                         </>
                       )}
                       
-                      <button 
-                        className="btn btn-danger" 
-                        style={{ padding: '0.35rem 0.5rem' }}
-                        onClick={() => setAppointmentToDelete(a)}
-                        title="Delete Permanently"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {!a.queueNumber && a.status !== 'Completed' && a.status !== 'InProgress' && user?.role === 'Admin' && (
+                        <button 
+                          className="btn btn-danger" 
+                          style={{ padding: '0.35rem 0.5rem' }}
+                          onClick={() => setAppointmentToDelete(a)}
+                          title="Delete Permanently"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -460,7 +472,7 @@ export default function Appointments() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
           padding: '2rem'
         }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '500px' }}>
+          <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem' }}>{editingId ? 'Edit Appointment' : 'Book Appointment'}</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>

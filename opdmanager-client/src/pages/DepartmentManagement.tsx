@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Building2, Edit2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 import toast from 'react-hot-toast';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function DepartmentManagement() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
 
@@ -181,21 +183,21 @@ export default function DepartmentManagement() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Building2 size={28} />
-          Departments & Services
+          {t('Departments & Services')}
         </h1>
         <button className="btn btn-primary" onClick={openNewDept}>
-          <Plus size={18} /> New Department
+          <Plus size={18} /> {t('New Department')}
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', flex: 1, minHeight: 0 }}>
+      <div className="dept-layout">
         {/* Departments List */}
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="surface" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', fontWeight: 600 }}>
-            Departments
+            {t('Departments')}
           </div>
           <div style={{ padding: '0.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {departments.map((dept: any) => (
@@ -242,16 +244,16 @@ export default function DepartmentManagement() {
         </div>
 
         {/* Services List */}
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="surface" style={{ display: 'flex', flexDirection: 'column' }}>
           {selectedDept ? (
             <>
-              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h3 style={{ margin: 0 }}>{selectedDept.name} Services</h3>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Price List / Catalog</div>
+                  <h3 style={{ margin: 0 }}>{selectedDept.name} {t('Services')}</h3>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('Price List / Catalog')}</div>
                 </div>
                 <button className="btn btn-primary" onClick={openNewService} style={{ padding: '0.5rem 1rem' }}>
-                  <Plus size={16} /> Add Service
+                  <Plus size={16} /> {t('Add Service')}
                 </button>
               </div>
               <div style={{ padding: '1rem', overflowY: 'auto', flex: 1 }}>
@@ -305,12 +307,12 @@ export default function DepartmentManagement() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(11, 15, 25, 0.8)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem'
         }} onClick={closeDeptModal}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+          <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem' }}>
-                {editingDeptId ? 'Edit Department' : 'New Department'}
+                {editingDeptId ? t('Edit Department') : t('New Department')}
               </h2>
             </div>
             <form onSubmit={handleCreateDept}>
@@ -344,12 +346,12 @@ export default function DepartmentManagement() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(11, 15, 25, 0.8)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem'
         }} onClick={closeServiceModal}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+          <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem' }}>
-                {editingServiceId ? 'Edit Service' : `Add Service to ${selectedDept.name}`}
+                {editingServiceId ? t('Edit Service') : t('Add Service to') + ` ${selectedDept.name}`}
               </h2>
             </div>
             <form onSubmit={handleAddService}>
@@ -374,13 +376,29 @@ export default function DepartmentManagement() {
 
       {deptToDelete && (
         <ConfirmModal
-          title="Delete Department"
-          message={`Are you sure you want to permanently delete the department "${deptToDelete.name}"? This action cannot be undone and will fail if the department has active records.`}
-          confirmText="Delete Department"
+          title={t('Delete Department')}
+          message={t(`Are you sure you want to permanently delete the department`) + ` "${deptToDelete.name}"? ` + t(`This action cannot be undone and will fail if the department has active records.`)}
+          confirmText={t('Delete Department')}
           onConfirm={() => deleteDeptMutation.mutate(deptToDelete.id)}
           onCancel={() => setDeptToDelete(null)}
         />
       )}
+
+      <style>{`
+        .dept-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          flex: 1;
+          min-height: 0;
+        }
+        @media (min-width: 768px) {
+          .dept-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

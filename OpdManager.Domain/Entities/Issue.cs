@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using OpdManager.Domain.Enums;
@@ -15,6 +15,8 @@ namespace OpdManager.Domain.Entities
         public DateTime ReportedAt { get; set; } = DateTime.Now;
         public DateTime? ResolvedAt { get; set; }
         public string? Resolution { get; set; }
+        
+        public string? ReportedByName { get; set; }
 
         // Optional link to appointment
         public int? AppointmentId { get; set; }

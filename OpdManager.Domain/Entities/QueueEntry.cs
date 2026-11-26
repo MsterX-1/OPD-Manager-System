@@ -15,6 +15,7 @@ public class QueueEntry
     public DateTime CheckInTime { get; set; } = DateTime.UtcNow;
     public DateTime? StartTime { get; set; }
     public DateTime? EndTime { get; set; }
+    public int AccumulatedExaminationSeconds { get; set; } = 0;
 
     /// <summary>
     /// Waiting time in minutes: CheckInTime → StartTime (or now if still waiting).
@@ -25,14 +26,26 @@ public class QueueEntry
         : (int)(DateTime.UtcNow - CheckInTime).TotalMinutes;
 
     /// <summary>
-    /// Examination time in minutes: StartTime → EndTime.
-    /// Only meaningful for Done entries — null for Skipped or incomplete.
+    /// Examination time in minutes. Uses accumulated time if present, plus any active time.
+    /// Only meaningful for Done entries, or live calculation.
     /// </summary>
     [NotMapped]
-    public int? ExaminationMinutes =>
-        Status == QueueStatus.Done && StartTime.HasValue && EndTime.HasValue
-            ? (int)(EndTime.Value - StartTime.Value).TotalMinutes
-            : null;
+    public int? ExaminationMinutes
+    {
+        get
+        {
+            if (Status == QueueStatus.Done && StartTime.HasValue && EndTime.HasValue)
+            {
+                var totalSeconds = AccumulatedExaminationSeconds + (EndTime.Value - StartTime.Value).TotalSeconds;
+                return (int)(totalSeconds / 60);
+            }
+            if (Status == QueueStatus.Done && AccumulatedExaminationSeconds > 0)
+            {
+                return AccumulatedExaminationSeconds / 60;
+            }
+            return null;
+        }
+    }
 
     // Foreign Key
     public int AppointmentId { get; set; }

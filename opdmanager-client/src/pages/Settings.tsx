@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AppSettings {
   hospitalName: string;
@@ -12,6 +13,7 @@ interface AppSettings {
 }
 
 export default function Settings() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<AppSettings>({
     hospitalName: '',
@@ -52,29 +54,29 @@ export default function Settings() {
     updateMutation.mutate(formData);
   };
 
-  if (isLoading) return <div className="p-4">Loading settings...</div>;
+  if (isLoading) return <div className="p-4">{t('Loading settings...')}</div>;
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">System Settings</h1>
+        <h1 className="page-title">{t('System Settings')}</h1>
       </div>
 
-      <div className="card" style={{ maxWidth: '600px' }}>
+      <div className="surface" style={{ maxWidth: '600px', padding: '2rem' }}>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Hospital / Clinic Name</label>
+            <label>{t('Hospital / Clinic Name')}</label>
             <input 
               type="text" 
               required
               value={formData.hospitalName}
               onChange={e => setFormData({ ...formData, hospitalName: e.target.value })}
             />
-            <small style={{ color: 'var(--text-muted)' }}>This name will appear on printed reports and the sidebar.</small>
+            <small style={{ color: 'var(--text-muted)' }}>{t('This name will appear on printed reports and the sidebar.')}</small>
           </div>
 
           <div className="form-group">
-            <label>Waiting Alert Threshold (Minutes)</label>
+            <label>{t('Waiting Alert Threshold (Minutes)')}</label>
             <input 
               type="number" 
               min="1"
@@ -82,7 +84,7 @@ export default function Settings() {
               value={formData.waitingAlertMinutes}
               onChange={e => setFormData({ ...formData, waitingAlertMinutes: parseInt(e.target.value) || 30 })}
             />
-            <small style={{ color: 'var(--text-muted)' }}>Patients waiting longer than this will be highlighted in the Queue Monitor.</small>
+            <small style={{ color: 'var(--text-muted)' }}>{t('Patients waiting longer than this will be highlighted in the Queue Monitor.')}</small>
           </div>
 
           <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '2rem 0 1rem' }}>
@@ -93,12 +95,12 @@ export default function Settings() {
               checked={formData.enableDailyAppointmentCap}
               onChange={e => setFormData({ ...formData, enableDailyAppointmentCap: e.target.checked })}
             />
-            <label htmlFor="enableCap" style={{ margin: 0, cursor: 'pointer' }}>Enable Daily Appointment Cap</label>
+            <label htmlFor="enableCap" style={{ margin: 0, cursor: 'pointer' }}>{t('Enable Daily Appointment Cap')}</label>
           </div>
 
           {formData.enableDailyAppointmentCap && (
             <div className="form-group p-4" style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-              <label>Default Average Examination Minutes</label>
+              <label>{t('Default Average Examination Minutes')}</label>
               <input 
                 type="number" 
                 min="5"
@@ -107,8 +109,7 @@ export default function Settings() {
                 onChange={e => setFormData({ ...formData, defaultAverageExaminationMinutes: parseInt(e.target.value) || 15 })}
               />
               <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '0.5rem' }}>
-                Used to calculate a doctor's maximum daily patient capacity if the doctor doesn't have a specific average set.
-                (Total working minutes / Average examination minutes).
+                {t('Used to calculate a doctor\'s maximum daily patient capacity if the doctor doesn\'t have a specific average set. (Total working minutes / Average examination minutes).')}
               </small>
             </div>
           )}
@@ -116,7 +117,7 @@ export default function Settings() {
           <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
             <button type="submit" className="btn btn-primary" disabled={updateMutation.isPending}>
               <Save size={18} />
-              {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+              {updateMutation.isPending ? t('Saving...') : t('Save Settings')}
             </button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-﻿using OpdManager.Application.Interfaces;
+using OpdManager.Application.Interfaces;
 using OpdManager.Application.Services.Interfaces;
 using OpdManager.Domain.Entities;
 
@@ -34,6 +34,13 @@ namespace OpdManager.Application.Services.Implementations
         {
             var patient = await _uow.Patients.GetByIdAsync(id);
             if (patient is null) return;
+
+            var appointments = await _uow.Appointments.GetByPatientPagedAsync(id, 1, 1);
+            if (appointments.TotalCount > 0)
+            {
+                throw new InvalidOperationException($"Cannot delete Patient '{patient.FullName}' because they have existing clinical history.");
+            }
+
             _uow.Patients.Delete(patient);
             await _uow.SaveChangesAsync();
         }

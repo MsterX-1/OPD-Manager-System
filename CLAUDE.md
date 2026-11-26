@@ -7,12 +7,13 @@
 
 ## Project Overview
 
-A **Web-based application** for an Outpatient Department (OPD) Manager.
+A **Web-based application** for an Outpatient Department (OPD) Manager, currently expanding into a broader Hospital ERP system.
 Architecture migrated from WPF/SQLite to ASP.NET Core Web API + React SPA + SQL Server.
 
-**Purpose:** Help the OPD manager control daily operations:
-- Manage doctors, patients, appointments
+**Purpose:** Help the hospital manage daily operations:
+- Manage doctors, patients, appointments, and medical records
 - Monitor patient queue and waiting times in real-time
+- Handle intra-hospital referrals (Doctor to Doctor, Doctor to Department)
 - Track operational issues
 - Generate reports (PDF, Excel)
 - System administration and user management
@@ -24,7 +25,7 @@ Architecture migrated from WPF/SQLite to ASP.NET Core Web API + React SPA + SQL 
 | Layer | Technology |
 |---|---|
 | Frontend (SPA) | React, TypeScript, Vite, TanStack Query, Zustand, React Router |
-| UI Design | Custom Premium Dark Theme (Vanilla CSS + Glassmorphism) |
+| UI Design | Custom Premium Dark Theme (Vanilla CSS + Impeccable Refinements) |
 | API | ASP.NET Core Web API (.NET 10) |
 | Real-time | SignalR (Queue & Dashboard updates) |
 | Auth | ASP.NET Core Identity + JWT Bearer Tokens |
@@ -57,83 +58,50 @@ Client (React) → Api (via HTTP/REST & SignalR)
 
 ---
 
+## Roles & Access Control
+
+| Role | Scope |
+|---|---|
+| **Admin** | Full system — Users, Doctors, Departments, Settings, all data, all reports |
+| **Staff** | Front-desk/reception — patients, booking, check-in |
+| **Doctor** | Only their own appointments, queue, and patients; writes/edits medical records and prescriptions; creates referrals |
+| **DepartmentStaff** | Only their own department's referral queue; updates status, attaches results |
+
+---
+
 ## Domain Layer — Entities & Enums
 
-### Entities (`OpdManager.Domain/Entities/`)
-- `Doctor` — Id, Name, Specialty, PhoneNumber, IsActive, AverageExaminationMinutes?
+### Core Entities (`OpdManager.Domain/Entities/`)
+- `Doctor` — Id, UserId (nullable), Name, Specialty, PhoneNumber, IsActive, AverageExaminationMinutes?
 - `DoctorSchedule` — Id, DoctorId, DayOfWeek, StartTime, EndTime, IsWorking
-- `Patient` — Id, FullName, PhoneNumber, DateOfBirth, Notes, CreatedAt
+- `Patient` — Id, FullName, PhoneNumber, DateOfBirth, Gender, NationalId, KnownAllergies, Notes, CreatedAt
 - `Appointment` — Id, AppointmentDate, Status, Notes, CreatedAt, DoctorId, PatientId
 - `QueueEntry` — Id, QueueNumber, Status, CheckInTime, StartTime?, EndTime?, AppointmentId
-  - `[NotMapped] int? WaitingMinutes` computed
-  - `[NotMapped] int? ExaminationMinutes` computed
 - `Issue` — Id, Title, Description, Category, Status, ReportedAt, ResolvedAt?, Resolution?, AppointmentId?
-- `AppSetting` — Key, Value (DB-backed config replacing old JSON file)
+- `AppSetting` — Key, Value
+
+### Clinical & Referral Entities (Phase A Expansion)
+- `MedicalRecord` — Id, AppointmentId, DoctorId, ChiefComplaint, Vitals (BP, Temp, Pulse, Resp, Weight, Height, O2), Diagnosis, ClinicalNotes, CreatedAt, UpdatedAt
+- `Prescription` — Id, MedicalRecordId, MedicationName, Dosage, Frequency, DurationDays, Instructions
+- `Attachment` — Id, MedicalRecordId?, ReferralId?, FileType, FilePath, UploadedAt, UploadedByUserId, Description
+- `Department` — Id, Name, Type, IsActive
+- `DepartmentService` — Id, DepartmentId, Name, Fee
+- `Referral` — Id, PatientId, ReferringDoctorId, SourceAppointmentId, ReferralType, TargetDoctorId?, TargetDepartmentId?, TargetDepartmentServiceId?, Reason, Status, CreatedAt, CompletedAt?, ResultNotes?, ResultAttachmentId?
+- `DepartmentQueueEntry` — Id, QueueNumber, Status, CheckInTime, StartTime?, EndTime?, ReferralId
 
 ### Infrastructure Entities (`OpdManager.Infrastructure/Identity/`)
-- `ApplicationUser` (extends IdentityUser) — FullName
+- `ApplicationUser` (extends IdentityUser) — FullName, DoctorId?, DepartmentId?
 - `RefreshToken` — Token, UserId, ExpiresAt, IsRevoked
 
 ### Enums (`OpdManager.Domain/Enums/`)
 - `AppointmentStatus`: Scheduled, InProgress, Completed, Cancelled, NoShow
 - `QueueStatus`: Waiting, InProgress, Done, Skipped
-- `IssueStatus`: Open, InReview, Closed
-
----
-
-## Application Layer
-
-### Service Interfaces (`OpdManager.Application/Services/Interfaces/`)
-- `IDoctorService` — CRUD + GetScheduleAsync, SetScheduleAsync
-- `IPatientService` — CRUD + Search
-- `IAppointmentService` — CRUD + BookAsync (validates schedule & daily cap)
-- `IQueueService` — Queue ops, CheckIn, DashboardStats, GetDoctorPerformanceAsync
-- `IIssueService` — Issue workflow
-- `IReportService` — PDF/Excel generation (returns byte[])
-- `ISettingsService` — Get/Update settings from DB
-
----
-
-## Infrastructure Layer
-
-### DbContext (`OpdManager.Infrastructure/Data/AppDbContext.cs`)
-- Extends `IdentityDbContext<ApplicationUser, IdentityRole, string>`
-- SQL Server provider (`UseSqlServer`)
-- TimeSpan maps natively to `time(7)` (no ticks workaround needed)
-- `AppDbContextFactory` provided for EF CLI design-time migrations
-
----
-
-## API Layer (`OpdManager.Api`)
-
-### Controllers & Auth
-- **JWT Auth**: `AuthController` provides Login and Refresh Token. Registration is disabled for anonymous users (only Admin can create users via `UsersController`).
-- **Roles**: "Admin" and "Staff". 
-  - Admin: manages Users, Doctors, Settings. 
-  - Staff: standard day-to-day operations.
-
-### Key API Endpoints
-- `/api/auth/*` — Login, Refresh, Me
-- `/api/users/*` — User CRUD (Admin)
-- `/api/doctors/*` — Doctor CRUD + Schedule management (Admin)
-- `/api/patients/*` — Patient CRUD (Any)
-- `/api/appointments/*` — Book, Update, Cancel, Search (Any)
-- `/api/queue/*` — Check-in, Update Status (Any)
-- `/api/dashboard` — Live stats (Any)
-- `/api/reports/*` — PDF/Excel downloads
-- `/api/settings/*` — App configuration (Admin)
-
-### SignalR Hubs
-- `/hubs/queue` — Pushes `QueueUpdated` event when status changes or check-ins happen.
-- `/hubs/dashboard` — Pushes `DashboardUpdated` event alongside queue changes.
+- `ReferralType`: ToDoctor, ToDepartment
+- `ReferralStatus`: Pending, InProgress, Completed, Cancelled
 
 ---
 
 ## React Frontend (`opdmanager-client`)
-
-- **State Management**: TanStack Query (server state), Zustand (client auth state).
-- **HTTP Client**: Axios with JWT interceptor for auto-attaching tokens and refreshing on 401.
-- **Styling**: Premium dark theme via `index.css`, glassmorphism, responsive grid layouts.
 
 ### Screens / Pages
 | Route | Description | Role |
@@ -143,7 +111,12 @@ Client (React) → Api (via HTTP/REST & SignalR)
 | `/queue` | Live Queue Kanban board (SignalR) | Authenticated |
 | `/appointments` | Appointment management & check-in | Authenticated |
 | `/patients` | Patient directory | Authenticated |
+| `/patient-chart/:id` | Patient Chart (Medical history, referrals) | Authenticated |
+| `/encounter/:id` | Medical Record form (vitals, diagnosis, rx) | Doctor / Staff |
+| `/doctor-portal` | "My Queue" & "My Appointments" | Doctor |
+| `/department-portal` | Department Queue & Result entry | DepartmentStaff |
 | `/doctors` | Doctor CRUD + 7-day schedule editor | Admin |
+| `/departments` | Department CRUD | Admin |
 | `/issues` | Issue tracking | Authenticated |
 | `/reports` | PDF/Excel exports | Authenticated |
 | `/users` | System user management | Admin |
@@ -151,66 +124,29 @@ Client (React) → Api (via HTTP/REST & SignalR)
 
 ---
 
-## Key Business Rules & New Features
+## Key Business Rules
 
-### Day-based Appointments & Daily Cap
-- Appointments are now **day-based**, not tied to a specific time slot.
-- `DoctorSchedule` defines working hours per weekday.
-- **Daily Cap Feature**: If enabled in Settings, the system calculates a doctor's max capacity based on `(WorkingMinutes / AverageExaminationMinutes)`. `BookAsync` validates against this cap before allowing a new appointment.
+### Doctor Referrals
+- Doctors can create referrals from the Encounter screen.
+- `ToDoctor` creates a pending appointment suggestion for the target doctor.
+- `ToDepartment` creates a `DepartmentQueueEntry` so the patient shows up in that department's Kanban board.
+- When a department completes a referral, a SignalR notification alerts the referring doctor.
 
-### Real-time Sync
-- Old WPF used a 30s timer. The React app connects via SignalR. When an appointment is checked in, all clients instantly update the Queue Monitor and Dashboard.
-
-### Doctor Performance Tracking
-- `QueueEntry` tracks `CheckInTime`, `StartTime`, and `EndTime`.
-- `ExaminationMinutes` is calculated for completed visits.
-- `Dashboard` and `Reports` expose this data (avg & total examination times).
+### Medical Records
+- Vitals can be edited by Staff or Doctors.
+- Diagnosis, Clinical Notes, and Prescriptions are strictly Doctor-only for the assigned appointment.
 
 ---
 
-## Migrations & Database
-
-1. Ensure SQL Server (or LocalDB) is running.
-2. Connection string is configured in `OpdManager.Api/appsettings.json`:
-   `Server=MSTERX\MSTERX;Database=OPD;User Id=sa;Password=MsterXx123;TrustServerCertificate=True;`
-
-**Generate/Apply Migrations:**
-```powershell
-cd "E:\Projects\C Sharp\OPD System"
-dotnet ef migrations add <Name> --project OpdManager.Infrastructure --startup-project OpdManager.Api
-dotnet ef database update --project OpdManager.Infrastructure --startup-project OpdManager.Api
-```
-
-*Note: On first run, EF `MigrateAsync()` applies pending migrations and the API seeds the "Admin" & "Staff" roles plus the default `admin@opd.local` user.*
-
----
-
-## How To Run
-
-### 1. Run the Backend API
-```powershell
-cd "E:\Projects\C Sharp\OPD System"
-dotnet run --project OpdManager.Api
-```
-- Starts on `http://localhost:5073`
-- Swagger UI available at `http://localhost:5073/swagger`
-
-### 2. Run the React Frontend
-```powershell
-cd "E:\Projects\C Sharp\OPD System\opdmanager-client"
-npm run dev
-```
-- Starts on `http://localhost:5173`
-- Default login: `admin@opd.local` / `Admin@123`
-
----
-
-## What Has Been Completed (Migration)
-- ✅ **Domain/Application Changes**: Removed `TimeSlotTicks` workaround. Added `DoctorSchedule` entity. Added `ExaminationMinutes` and daily cap logic.
-- ✅ **Infrastructure Swap**: Migrated from SQLite to SQL Server. Replaced local JSON settings with DB-backed `AppSetting`. Added ASP.NET Core Identity. Removed WPF-specific BackupService and print logic.
-- ✅ **API Layer**: Created `OpdManager.Api` with full JWT auth, controllers, and SignalR hubs.
-- ✅ **Frontend**: Bootstrapped React SPA with Vite. Configured premium dark mode aesthetics. Implemented routing, auth guards, API client, and layout components. Created placeholder/functional pages for all features.
+## What Has Been Completed
+- ✅ **OPD Core**: Base system migrated from WPF to React + Web API.
+- ✅ **UI Polish**: Fully themed and animated frontend using Impeccable standards (Harden, Onboard, Polish, Animate, Colorize).
+- ✅ **Phase A (Core Clinical Loop)**: Added Doctor scoped access, Medical Records, Prescriptions, Attachments, Departments, and the complete Referral network logic.
 
 ## What Still Needs To Be Done
-- [ ] Flesh out the UI components inside the React pages (e.g., forms, modals, tables for Doctors, Users, Settings).
-- [ ] Implement pagination controls on the React table components.
+- [ ] **Phase B (Financial Loop)**: 
+  - Payment method selection at booking.
+  - Insurance providers and Patient policies.
+  - `Invoice`, `InvoiceItem`, and `Payment` models.
+  - Checkout/Billing screen and PDF invoice generation.
+- [ ] **Phase C (Production Hardening)**: Soft deletes, Audit logs, secrets hygiene, concurrency tokens.

@@ -4,6 +4,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import { useAuthStore } from '../store';
+import { useTranslation } from 'react-i18next';
 import ConfirmModal from '../components/ConfirmModal';
 
 interface User {
@@ -16,6 +17,7 @@ interface User {
 }
 
 export default function Users() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const currentUser = useAuthStore(state => state.user);
   const [showModal, setShowModal] = useState(false);
@@ -134,10 +136,10 @@ export default function Users() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">User Management</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 className="page-title">{t('User Management')}</h1>
         <button className="btn btn-primary" onClick={openNewUser}>
-          <Plus size={18} /> Add User
+          <Plus size={18} /> {t('Add User')}
         </button>
       </div>
 
@@ -145,15 +147,15 @@ export default function Users() {
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th>{t('Name')}</th>
+              <th>{t('Email')}</th>
+              <th>{t('Role')}</th>
+              <th style={{ textAlign: 'right' }}>{t('Actions')}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={4} style={{ textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={4} style={{ textAlign: 'center' }}>{t('Loading...')}</td></tr>
             ) : users?.map((u) => (
               <tr key={u.id}>
                 <td style={{ fontWeight: 500 }}>{u.fullName}</td>
@@ -161,7 +163,7 @@ export default function Users() {
                 <td>
                   <span className={`badge badge-${u.role === 'Admin' ? 'accent-primary' : 'neutral'}`} 
                         style={u.role === 'Admin' ? { background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(59, 130, 246, 0.2)' } : {}}>
-                    {u.role}
+                    {t(u.role)}
                   </span>
                 </td>
                 <td style={{ textAlign: 'right' }}>
@@ -186,11 +188,11 @@ export default function Users() {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(11, 15, 25, 0.8)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem'
         }}>
-          <div className="card animate-fade-in" style={{ width: '100%', maxWidth: '400px' }}>
+          <div className="surface animate-fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem' }}>{editingUser ? 'Edit User' : 'New User'}</h2>
+              <h2 style={{ fontSize: '1.25rem' }}>{editingUser ? t('Edit User') : t('New User')}</h2>
               <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
@@ -198,32 +200,32 @@ export default function Users() {
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Full Name</label>
+                <label>{t('Full Name')}</label>
                 <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} />
               </div>
               <div className="form-group">
-                <label>Email</label>
+                <label>{t('Email')}</label>
                 <input required type="email" disabled={!!editingUser} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
               </div>
               <div className="form-group">
-                <label>{editingUser ? 'New Password (leave blank to keep current)' : 'Password'}</label>
+                <label>{editingUser ? t('New Password (leave blank to keep current)') : t('Password')}</label>
                 <input required={!editingUser} type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
               </div>
               <div className="form-group">
-                <label>Role</label>
+                <label>{t('Role')}</label>
                 <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                  <option value="Staff">Staff</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Doctor">Doctor</option>
-                  <option value="DepartmentStaff">Department Staff</option>
+                  <option value="Staff">{t('Staff')}</option>
+                  <option value="Admin">{t('Admin')}</option>
+                  <option value="Doctor">{t('Doctor')}</option>
+                  <option value="DepartmentStaff">{t('Department Staff')}</option>
                 </select>
               </div>
               
               {formData.role === 'Doctor' && (
                 <div className="form-group">
-                  <label>Linked Doctor</label>
+                  <label>{t('Linked Doctor')}</label>
                   <select value={formData.doctorId} onChange={e => setFormData({...formData, doctorId: e.target.value})}>
-                    <option value="">Select Doctor...</option>
+                    <option value="">{t('Select Doctor...')}</option>
                     {doctors.map((d: any) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.specialty})</option>
                     ))}
@@ -233,9 +235,9 @@ export default function Users() {
 
               {formData.role === 'DepartmentStaff' && (
                 <div className="form-group">
-                  <label>Linked Department</label>
+                  <label>{t('Linked Department')}</label>
                   <select value={formData.departmentId} onChange={e => setFormData({...formData, departmentId: e.target.value})}>
-                    <option value="">Select Department...</option>
+                    <option value="">{t('Select Department...')}</option>
                     {departments.map((d: any) => (
                       <option key={d.id} value={d.id}>{d.name} ({d.type})</option>
                     ))}
@@ -244,9 +246,9 @@ export default function Users() {
               )}
               <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={createMutation.isPending || updateMutation.isPending}>
-                  Save User
+                  {t('Save User')}
                 </button>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={closeModal}>Cancel</button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={closeModal}>{t('Cancel')}</button>
               </div>
             </form>
           </div>
@@ -255,9 +257,9 @@ export default function Users() {
 
       {userToDelete && (
         <ConfirmModal
-          title="Delete User"
-          message={`Are you sure you want to delete the user "${userToDelete.fullName}"? This action cannot be undone.`}
-          confirmText="Delete User"
+          title={t('Delete User')}
+          message={t(`Are you sure you want to delete the user `) + `"${userToDelete.fullName}"? ` + t(`This action cannot be undone.`)}
+          confirmText={t('Delete User')}
           onConfirm={() => deleteMutation.mutate(userToDelete.id)}
           onCancel={() => setUserToDelete(null)}
         />

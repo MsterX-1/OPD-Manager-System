@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store';
 import api from '../api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,10 +26,10 @@ export default function Login() {
       const { user } = response.data;
       setAuth(user);
       
-      toast.success(`Welcome back, ${user.fullName}`);
+      toast.success(t('Welcome back,') + ` ${user.fullName}`);
       navigate('/');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(error.response?.data?.message || t('Login failed'));
     } finally {
       setLoading(false);
     }
@@ -40,32 +42,28 @@ export default function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '1rem',
-      background: 'var(--bg-primary)',
-      backgroundImage: `
-        radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)
-      `
+      background: 'var(--bg-primary)'
     }}>
-      <div className="glass-panel animate-fade-in" style={{
+      <div className="surface animate-fade-in" style={{
         padding: '3rem',
         width: '100%',
         maxWidth: '440px',
-        textAlign: 'center'
+        textAlign: 'center',
+        boxShadow: 'var(--shadow-lg)'
       }}>
         <div style={{ marginBottom: '2.5rem' }}>
           <h1 style={{
             fontSize: '2rem',
-            background: 'linear-gradient(to right, var(--accent-primary), var(--accent-secondary))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            color: 'var(--text-primary)',
+            fontWeight: 700,
             marginBottom: '0.5rem'
           }}>OPD Manager</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Sign in to continue</p>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('Sign in to continue')}</p>
         </div>
 
-        <form onSubmit={handleLogin} style={{ textAlign: 'left' }}>
+        <form onSubmit={handleLogin} style={{ textAlign: 'start' }}>
           <div className="form-group">
-            <label>Email Address</label>
+            <label>{t('Email Address')}</label>
             <input 
               type="email" 
               required 
@@ -76,7 +74,7 @@ export default function Login() {
           </div>
           
           <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label>Password</label>
+            <label>{t('Password')}</label>
             <input 
               type="password" 
               required 
@@ -92,7 +90,7 @@ export default function Login() {
             style={{ width: '100%', padding: '0.875rem' }}
             disabled={loading}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('Signing in...') : t('Sign In')}
           </button>
         </form>
       </div>

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, AlertTriangle, Plus, Trash2, Send, Save, Edit2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -21,6 +22,7 @@ interface Prescription {
  * Allows doctors to record vitals, diagnoses, and prescribe medications or lab tests.
  */
 export default function Encounter() {
+  const { t } = useTranslation();
   const { appointmentId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -206,13 +208,13 @@ export default function Encounter() {
           <button className="btn" onClick={() => navigate(-1)} style={{ padding: '0.5rem', background: 'transparent', border: '1px solid var(--border-color)' }}>
             <ArrowLeft size={18} />
           </button>
-          <h1 className="page-title">Patient Encounter</h1>
+          <h1 className="page-title">{t('Patient Encounter')}</h1>
         </div>
       </div>
 
       {/* Patient Info Banner */}
       {patient && (
-        <div className="glass-panel" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="surface" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: '1.2rem' }}>{patient.fullName}</div>
             <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
@@ -232,25 +234,25 @@ export default function Encounter() {
           )}
           <button className="btn" onClick={() => navigate(`/patient-chart/${patient.id}`)}
             style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            View Full Chart
+            {t('View Full Chart')}
           </button>
         </div>
       )}
 
       {/* Create record if not exists */}
       {!record && (
-        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>No medical record for this visit yet.</p>
+        <div className="surface" style={{ padding: '3rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>{t('No medical record for this visit yet.')}</p>
           <button className="btn btn-primary" onClick={() => createRecordMutation.mutate()}>
-            Start Medical Record
+            {t('Start Medical Record')}
           </button>
         </div>
       )}
 
       {record && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div className="encounter-layout">
           {/* Vitals */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
+          <div className="surface" style={{ padding: '1.5rem' }}>
             <h3 style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }}>Vitals</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {[
@@ -280,13 +282,13 @@ export default function Encounter() {
             </div>
             <button className="btn btn-primary" onClick={() => saveVitalsMutation.mutate()} 
               style={{ marginTop: '1rem', width: '100%' }}>
-              <Save size={16} /> Save Vitals
+              <Save size={16} /> {t('Save Vitals')}
             </button>
           </div>
 
           {/* Diagnosis & Notes */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--accent-secondary)' }}>Diagnosis & Notes</h3>
+          <div className="surface" style={{ padding: '1.5rem' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--accent-secondary)' }}>{t('Diagnosis & Notes')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>Chief Complaint</label>
@@ -309,13 +311,13 @@ export default function Encounter() {
             </div>
             <button className="btn btn-primary" onClick={() => saveDiagnosisMutation.mutate()} 
               style={{ marginTop: '1rem', width: '100%' }}>
-              <Save size={16} /> Save Diagnosis
+              <Save size={16} /> {t('Save Diagnosis')}
             </button>
           </div>
 
           {/* Prescriptions */}
-          <div className="glass-panel" style={{ padding: '1.5rem', gridColumn: '1 / -1' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--success)' }}>Prescriptions</h3>
+          <div className="surface rx-section" style={{ padding: '1.5rem' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--success)' }}>{t('Prescriptions')}</h3>
             
             {prescriptions.length > 0 && (
               <table className="table" style={{ marginBottom: '1rem' }}>
@@ -355,7 +357,7 @@ export default function Encounter() {
             )}
 
             {/* Add prescription row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 0.5fr 2fr auto', gap: '0.5rem', alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.5rem', alignItems: 'end' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Medication</label>
                 <input className="input" value={newRx.medicationName}
@@ -408,22 +410,38 @@ export default function Encounter() {
           </div>
 
           {/* Actions */}
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }} className="actions-section">
             <button className="btn" onClick={() => setShowReferralModal(true)}
               style={{ padding: '0.75rem 1.5rem', background: 'var(--accent-secondary)', color: 'white', border: 'none' }}>
-              <Send size={16} /> Refer Patient
+              <Send size={16} /> {t('Refer Patient')}
             </button>
           </div>
         </div>
       )}
 
-      {/* Referral Modal */}
       {showReferralModal && record && (
         <ReferralModal
           appointmentId={Number(appointmentId)}
           onClose={() => setShowReferralModal(false)}
         />
       )}
+
+      <style>{`
+        .encounter-layout {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+          .encounter-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+          .rx-section, .actions-section {
+            grid-column: 1 / -1;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -470,10 +488,10 @@ function ReferralModal({ appointmentId, onClose }: { appointmentId: number; onCl
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', 
-      alignItems: 'center', justifyContent: 'center', zIndex: 1000
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
     }} onClick={onClose}>
-      <div className="glass-panel" onClick={e => e.stopPropagation()}
-        style={{ width: '500px', padding: '2rem', maxHeight: '80vh', overflowY: 'auto' }}>
+      <div className="surface" onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: '500px', padding: '2rem', maxHeight: '80vh', overflowY: 'auto' }}>
         <h2 style={{ marginBottom: '1.5rem' }}>Refer Patient</h2>
 
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>

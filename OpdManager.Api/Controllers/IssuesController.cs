@@ -56,7 +56,8 @@ public class IssuesController : ControllerBase
             Description = request.Description,
             Category = request.Category,
             AppointmentId = request.AppointmentId,
-            ReportedAt = DateTime.UtcNow
+            ReportedAt = DateTime.UtcNow,
+            ReportedByName = User.Identity?.Name ?? "Unknown"
         };
 
         await _issueService.AddAsync(issue);
@@ -94,6 +95,7 @@ public class IssuesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         await _issueService.DeleteAsync(id);

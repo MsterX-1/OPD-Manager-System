@@ -15,6 +15,7 @@ public class QueueEntryDto
     public DateTime CheckInTime { get; set; }
     public int WaitingMinutes { get; set; }
     public int? ExaminationMinutes { get; set; }
+    public int AccumulatedExaminationSeconds { get; set; }
     public DateTime? StartTime { get; set; }
     public DateTime? EndTime { get; set; }
 }

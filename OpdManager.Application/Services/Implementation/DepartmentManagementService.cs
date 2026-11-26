@@ -78,6 +78,12 @@ public class DepartmentManagementService : IDepartmentManagementService
         var department = await _uow.Departments.GetByIdAsync(id);
         if (department is null) return false;
 
+        var referrals = await _uow.Referrals.GetWhereAsync(r => r.TargetDepartmentId == id);
+        if (referrals.Any())
+        {
+            throw new InvalidOperationException($"Cannot delete Department '{department.Name}' because it has existing referrals. Please mark it as inactive instead.");
+        }
+
         _uow.Departments.Delete(department);
         await _uow.SaveChangesAsync();
         return true;

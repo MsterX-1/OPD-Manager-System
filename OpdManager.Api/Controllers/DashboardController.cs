@@ -19,7 +19,16 @@ public class DashboardController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetStats()
     {
-        var stats = await _queueService.GetDashboardStatsAsync();
+        int? doctorId = null;
+        if (User.IsInRole("Doctor"))
+        {
+            var doctorIdClaim = User.Claims.FirstOrDefault(c => c.Type == "DoctorId")?.Value;
+            if (int.TryParse(doctorIdClaim, out int did))
+            {
+                doctorId = did;
+            }
+        }
+        var stats = await _queueService.GetDashboardStatsAsync(doctorId);
         return Ok(stats);
     }
 }

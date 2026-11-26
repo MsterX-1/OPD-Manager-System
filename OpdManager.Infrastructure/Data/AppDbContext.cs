@@ -32,6 +32,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole, str
     {
         base.OnModelCreating(modelBuilder); // Identity tables
 
+        // Enum String Conversions
+        modelBuilder.Entity<Appointment>().Property(e => e.Status).HasConversion<string>();
+        modelBuilder.Entity<QueueEntry>().Property(e => e.Status).HasConversion<string>();
+        modelBuilder.Entity<Issue>().Property(e => e.Status).HasConversion<string>();
+        modelBuilder.Entity<Referral>().Property(e => e.Status).HasConversion<string>();
+        modelBuilder.Entity<DepartmentQueueEntry>().Property(e => e.Status).HasConversion<string>();
+
         // Doctor
         modelBuilder.Entity<Doctor>(e =>
         {

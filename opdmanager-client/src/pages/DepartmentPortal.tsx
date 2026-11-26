@@ -5,6 +5,7 @@ import { ClipboardList, ArrowRight, Check, Upload } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store';
+import { useTranslation } from 'react-i18next';
 
 /**
  * DepartmentPortal Component
@@ -12,6 +13,7 @@ import { useAuthStore } from '../store';
  * Uses SignalR for instant updates when doctors refer patients or when results are attached.
  */
 export default function DepartmentPortal() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const user = useAuthStore(state => state.user);
   const [now, setNow] = useState(new Date());
@@ -85,9 +87,9 @@ export default function DepartmentPortal() {
   };
 
   const columns = [
-    { id: 'Waiting', title: 'Waiting', color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.05)' },
-    { id: 'InProgress', title: 'In Progress', color: 'var(--accent-primary)', bg: 'rgba(59, 130, 246, 0.05)' },
-    { id: 'Done', title: 'Completed', color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.05)' }
+    { id: 'Waiting', title: t('Waiting'), color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.05)' },
+    { id: 'InProgress', title: t('In Progress'), color: 'var(--accent-primary)', bg: 'rgba(59, 130, 246, 0.05)' },
+    { id: 'Done', title: t('Completed'), color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.05)' }
   ];
 
   if (isLoading) return <div>Loading...</div>;
@@ -97,16 +99,14 @@ export default function DepartmentPortal() {
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ClipboardList size={28} />
-          Department Queue
+          {t('Dept Portal')}
         </h1>
         <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-md)', fontWeight: 600 }}>
           {user?.departmentId ? `Dept ID: ${user.departmentId}` : 'Admin View'}
         </div>
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
+      <div className="grid grid-cols-1 md:grid-cols-3" style={{ 
         gap: '1.5rem',
         flex: 1,
         minHeight: 0
@@ -115,7 +115,7 @@ export default function DepartmentPortal() {
           const items = queueItems.filter((q: any) => q.status === col.id);
           
           return (
-            <div key={col.id} className="glass-panel" style={{ 
+            <div key={col.id} className="surface" style={{ 
               display: 'flex', 
               flexDirection: 'column',
               background: col.bg,
@@ -197,7 +197,7 @@ export default function DepartmentPortal() {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', 
           alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }} onClick={() => setSelectedEntry(null)}>
-          <div className="glass-panel" onClick={e => e.stopPropagation()}
+          <div className="surface" onClick={e => e.stopPropagation()}
             style={{ width: '500px', padding: '2rem' }}>
             <h2 style={{ marginBottom: '1rem' }}>Attach Results</h2>
             <div style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
